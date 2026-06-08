@@ -14,6 +14,8 @@
 
 当 Claude Code 频繁询问读文件、写文件、运行命令、删除文件或本会话授权时，这个 companion 会把当前权限请求压缩成 Touch Bar 上的短摘要和几个动作按钮。你点一下，结果会通过 Claude Code 官方 `PermissionRequest` hook 结构化返回，不需要往终端里注入键盘输入。
 
+> 范围说明：当前 MVP 主要面向 BetterTouchTool 工作流开发。等 hook 闭环稳定后，后续会继续迭代，可能扩展 native helper 或其他交互形式。
+
 ```text
 Read PRD_中文.md                  [Yes] [Yes all session] [No]
 Create permission-edit-test.md   [Yes] [All edits] [No]
@@ -161,4 +163,4 @@ find ~/.claude-touchbar/responses -maxdepth 1 -type f -print
 
 ## 状态
 
-MVP 已经可以在 macOS Touch Bar + BetterTouchTool 上处理真实 Claude Code 权限请求。
+MVP 已经可以在 macOS Touch Bar + BetterTouchTool 上处理真实 Claude Code 权限请求。项目当前是 BTT-first，后续会在这个基础上继续迭代。

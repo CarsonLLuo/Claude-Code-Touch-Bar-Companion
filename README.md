@@ -14,6 +14,8 @@ Turn your MacBook Pro Touch Bar into a compact permission console for Claude Cod
 
 Instead of repeatedly jumping back into the terminal for small approvals, this companion surfaces the current Claude Code permission request on the Touch Bar, lets you tap the right action, and sends the result back through Claude Code's structured `PermissionRequest` hook output.
 
+> Scope note: this MVP is currently developed specifically for the BetterTouchTool workflow. Future iterations may add a native helper or other interaction surfaces once the hook flow is stable.
+
 ```text
 Read PRD_中文.md                  [Yes] [Yes all session] [No]
 Create permission-edit-test.md   [Yes] [All edits] [No]
@@ -160,4 +162,4 @@ find ~/.claude-touchbar/responses -maxdepth 1 -type f -print
 
 ## Status
 
-MVP is functional for real Claude Code permission requests with BetterTouchTool on macOS Touch Bar.
+MVP is functional for real Claude Code permission requests with BetterTouchTool on macOS Touch Bar. The project is currently BTT-first and will iterate from this foundation.
