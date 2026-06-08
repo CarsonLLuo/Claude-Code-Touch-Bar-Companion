@@ -78,7 +78,7 @@ Claude Code structured hook decision
 [Context] [Action 1] [Action 2] [Action 3]
 ```
 
-`Context` 只显示 Claude Code 正在请求什么，不是批准按钮。三个 action item 分别调用 `scripts/btt_action.py 0`、`1`、`2`。
+`Context` 默认只显示 Claude Code 正在请求什么，不是批准按钮；也可以给它配置 click action，运行 `scripts/start_claude_iterm2.sh`，在新的 iTerm2 窗口里启动 Claude Code。三个 action item 分别调用 `scripts/btt_action.py 0`、`1`、`2`。
 
 完整 BTT 配置见 [docs/BTT_SETUP.md](docs/BTT_SETUP.md)。
 
@@ -90,7 +90,7 @@ Claude Code structured hook decision
 | 带 edit suggestion 的 `Write`、`Edit`、`MultiEdit` | `Yes / All edits / No` |
 | 常规低/中风险请求 | `Yes / No / Review` |
 | 高风险删除或 shell 命令 | `Review / No` |
-| 过期状态 | `Claude idle` |
+| 过期状态 | `CC Ready` |
 
 `Review` 不会批准请求，只是把控制权交回 Claude Code 主屏幕权限流程。
 
@@ -111,6 +111,7 @@ MVP 测试期间，项目会临时让 `Read` 也触发权限请求，方便验�
 .claude/hooks/touchbar-hook.sh   # hook shell wrapper
 scripts/btt_state.py             # BetterTouchTool 动态标题读取器
 scripts/btt_action.py            # BetterTouchTool 点击动作写入器
+scripts/start_claude_iterm2.sh   # 可选：点击 Context item 启动 Claude Code
 docs/BTT_SETUP.md                # BetterTouchTool 配置指南
 docs/HOOK_SETUP.md               # hook 行为和手动测试
 ONE_PAGE.md                      # 项目 one-pager

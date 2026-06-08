@@ -78,7 +78,7 @@ Create four BetterTouchTool Shell Script / Task widgets:
 [Context] [Action 1] [Action 2] [Action 3]
 ```
 
-The context item is display-only. It tells you what Claude Code is asking for. The action items call `scripts/btt_action.py` with index `0`, `1`, or `2`.
+The context item is display-only by default. It tells you what Claude Code is asking for; optionally, its click action can run `scripts/start_claude_iterm2.sh` to launch Claude Code in a new iTerm2 window. The action items call `scripts/btt_action.py` with index `0`, `1`, or `2`.
 
 See [docs/BTT_SETUP.md](docs/BTT_SETUP.md) for the exact BetterTouchTool scripts.
 
@@ -90,7 +90,7 @@ See [docs/BTT_SETUP.md](docs/BTT_SETUP.md) for the exact BetterTouchTool scripts
 | `Write`, `Edit`, `MultiEdit` with edit suggestion | `Yes / All edits / No` |
 | normal low or medium risk request | `Yes / No / Review` |
 | high-risk delete or shell command | `Review / No` |
-| expired state | `Claude idle` |
+| expired state | `CC Ready` |
 
 `Review` intentionally does not approve the request. It lets Claude Code fall back to the normal on-screen permission flow.
 
@@ -111,6 +111,7 @@ During MVP testing, this project intentionally asks before `Read` calls so the T
 .claude/hooks/touchbar-hook.sh   # hook shell wrapper
 scripts/btt_state.py             # BetterTouchTool dynamic label reader
 scripts/btt_action.py            # BetterTouchTool action writer
+scripts/start_claude_iterm2.sh   # optional Context item click action for launching Claude Code
 docs/BTT_SETUP.md                # BetterTouchTool setup guide
 docs/HOOK_SETUP.md               # hook behavior and manual tests
 ONE_PAGE.md                      # project one-pager

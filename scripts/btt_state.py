@@ -46,7 +46,7 @@ def main():
 
     if not state:
         if args.field == "context":
-            print("Claude idle")
+            print("CC Ready")
         else:
             print("")
         return

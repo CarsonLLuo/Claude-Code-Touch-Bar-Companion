@@ -165,7 +165,7 @@ unknown-long-command ...  ->  Run unknown-long-command
   - BTT 动态标题脚本。
   - 读取 `~/.claude-touchbar/state.json`。
   - 输出 `context`、`action-label`、`action-id`、`kind` 或 `risk`。
-  - 状态缺失或过期时返回 `Claude idle` 或空 action。
+  - 状态缺失或过期时返回 `CC Ready` 或空 action。
 
 - `scripts/btt_action.py`
   - BTT 点击动作脚本。

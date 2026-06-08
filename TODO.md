@@ -74,7 +74,7 @@
   - 验收：JSON 无效、action 不存在、状态过期、风险不允许时不写 response。
 
 - [x] 实现 idle / expired 状态
-  - 验收：无有效状态时显示 `Claude idle` 或空 action；过期状态无法触发旧 action。
+  - 验收：无有效状态时显示 `CC Ready` 或空 action；过期状态无法触发旧 action。
 
 ## Phase 3：Claude Code hooks 接入
 

@@ -24,6 +24,13 @@ Create four Touch Bar items:
 ```
 
 The `Context` item is not an approval button. It only shows what Claude Code is asking for.
+When there is no active request, it shows:
+
+```text
+CC Ready
+```
+
+Optionally, make this item clickable to launch Claude Code in iTerm2.
 
 ## Context Widget
 
@@ -39,7 +46,13 @@ Script:
 /Users/carson/Desktop/code/claude-touchbar-companion/scripts/btt_state.py context
 ```
 
-No click action is needed.
+Optional click action script:
+
+```sh
+/Users/carson/Desktop/code/claude-touchbar-companion/scripts/start_claude_iterm2.sh
+```
+
+This opens a new iTerm2 window, changes into the project directory, and runs `claude`.
 
 Recommended script interval during testing:
 
@@ -118,7 +131,7 @@ Delete tmp    Review    No
 Unknown / expired state:
 
 ```text
-Claude idle
+CC Ready
 ```
 
 ## Action Behavior
@@ -225,7 +238,7 @@ find ~/.claude-touchbar/responses -maxdepth 1 -type f -print
 
 - Context shows the latest valid `state.json` context.
 - Action buttons show current labels.
-- Expired state shows `Claude idle` and empty action labels.
+- Expired state shows `CC Ready` and empty action labels.
 - `Yes` returns an allow decision.
 - `Yes all session` returns allow + session `Read` `updatedPermissions`.
 - `No` returns a deny decision.
