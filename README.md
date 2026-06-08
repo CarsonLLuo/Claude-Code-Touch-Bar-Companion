@@ -1,5 +1,10 @@
 # Claude Code Touch Bar Companion
 
+<p align="right">
+  <a href="README.md"><img src="https://img.shields.io/badge/English-111827?style=for-the-badge" alt="English"></a>
+  <a href="README_%E4%B8%AD%E6%96%87.md"><img src="https://img.shields.io/badge/%E4%B8%AD%E6%96%87-2563EB?style=for-the-badge" alt="中文"></a>
+</p>
+
 ![macOS](https://img.shields.io/badge/macOS-Touch%20Bar-111827?style=for-the-badge&logo=apple&logoColor=white)
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-Hooks-D97706?style=for-the-badge)
 ![BetterTouchTool](https://img.shields.io/badge/BetterTouchTool-Ready-2563EB?style=for-the-badge)
@@ -107,6 +112,7 @@ scripts/btt_action.py            # BetterTouchTool action writer
 docs/BTT_SETUP.md                # BetterTouchTool setup guide
 docs/HOOK_SETUP.md               # hook behavior and manual tests
 ONE_PAGE.md                      # project one-pager
+README_中文.md                    # Chinese README
 PRD_中文.md                       # Chinese PRD
 TODO.md                          # implementation checklist
 Progress.md                      # current progress notes
