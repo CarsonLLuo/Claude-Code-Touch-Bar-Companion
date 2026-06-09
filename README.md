@@ -10,6 +10,8 @@
 ![BetterTouchTool](https://img.shields.io/badge/BetterTouchTool-Ready-2563EB?style=for-the-badge)
 ![No Keyboard Injection](https://img.shields.io/badge/No%20Keyboard%20Injection-Safe-16A34A?style=for-the-badge)
 
+![1780981115328](image/README/1780981115328.png)
+
 Turn your MacBook Pro Touch Bar into a compact permission console for Claude Code.
 
 Instead of repeatedly jumping back into the terminal for small approvals, this companion surfaces the current Claude Code permission request on the Touch Bar, lets you tap the right action, and sends the result back through Claude Code's structured `PermissionRequest` hook output.
@@ -84,13 +86,13 @@ See [docs/BTT_SETUP.md](docs/BTT_SETUP.md) for the exact BetterTouchTool scripts
 
 ## Current Behavior
 
-| Request | Touch Bar actions |
-| --- | --- |
-| `Read` | `Yes / Yes all session / No` |
-| `Write`, `Edit`, `MultiEdit` with edit suggestion | `Yes / All edits / No` |
-| normal low or medium risk request | `Yes / No / Review` |
-| high-risk delete or shell command | `Review / No` |
-| expired state | `CC Ready` |
+| Request                                                 | Touch Bar actions              |
+| ------------------------------------------------------- | ------------------------------ |
+| `Read`                                                | `Yes / Yes all session / No` |
+| `Write`, `Edit`, `MultiEdit` with edit suggestion | `Yes / All edits / No`       |
+| normal low or medium risk request                       | `Yes / No / Review`          |
+| high-risk delete or shell command                       | `Review / No`                |
+| expired state                                           | `CC Ready`                   |
 
 `Review` intentionally does not approve the request. It lets Claude Code fall back to the normal on-screen permission flow.
 
@@ -98,13 +100,13 @@ See [docs/BTT_SETUP.md](docs/BTT_SETUP.md) for the exact BetterTouchTool scripts
 
 The Touch Bar Companion only activates when Claude Code triggers a `PermissionRequest`. This depends on which permission mode you use:
 
-| Mode | Triggers Touch Bar? | Notes |
-| --- | --- | --- |
-| **Default (no mode)** | ✅ All requests | Write, Edit, Bash all require approval |
-| **Accept Edits** | ⚠️ Partial | Write/Edit auto-approved, Bash still triggers |
-| **Auto Mode** | ⚠️ Partial | CC auto-approves low-risk ops, uncertain ones still trigger |
-| **Bypass Permissions** | ❌ Never | All ops auto-approved, hook is never called |
-| **Plan Mode** | ❌ Never | No tool calls, nothing to approve |
+| Mode                         | Triggers Touch Bar? | Notes                                                       |
+| ---------------------------- | ------------------- | ----------------------------------------------------------- |
+| **Default (no mode)**  | ✅ All requests     | Write, Edit, Bash all require approval                      |
+| **Accept Edits**       | ⚠️ Partial        | Write/Edit auto-approved, Bash still triggers               |
+| **Auto Mode**          | ⚠️ Partial        | CC auto-approves low-risk ops, uncertain ones still trigger |
+| **Bypass Permissions** | ❌ Never            | All ops auto-approved, hook is never called                 |
+| **Plan Mode**          | ❌ Never            | No tool calls, nothing to approve                           |
 
 **Recommended for testing**: use default mode so all permission requests go through the Touch Bar.
 

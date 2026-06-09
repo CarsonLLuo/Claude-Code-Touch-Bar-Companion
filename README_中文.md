@@ -10,6 +10,8 @@
 ![BetterTouchTool](https://img.shields.io/badge/BetterTouchTool-Ready-2563EB?style=for-the-badge)
 ![No Keyboard Injection](https://img.shields.io/badge/No%20Keyboard%20Injection-Safe-16A34A?style=for-the-badge)
 
+![Touch Bar 截图](image/README/1780981115328.png)
+
 把 MacBook Pro Touch Bar 变成 Claude Code 的轻量权限控制台。
 
 当 Claude Code 频繁询问读文件、写文件、运行命令、删除文件或本会话授权时，这个 companion 会把当前权限请求压缩成 Touch Bar 上的短摘要和几个动作按钮。你点一下，结果会通过 Claude Code 官方 `PermissionRequest` hook 结构化返回，不需要往终端里注入键盘输入。
