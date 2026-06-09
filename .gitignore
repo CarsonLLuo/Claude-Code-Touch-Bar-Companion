@@ -37,6 +37,9 @@ state.json
 *.swp
 *.swo
 
+# Design documents
+设计相关doc/
+
 # Temporary files
 *.tmp
 *.temp

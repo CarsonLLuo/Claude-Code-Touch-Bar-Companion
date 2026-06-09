@@ -94,6 +94,20 @@ Claude Code structured hook decision
 
 `Review` 不会批准请求，只是把控制权交回 Claude Code 主屏幕权限流程。
 
+## Claude Code 权限模式
+
+Touch Bar Companion 的触发取决于你在 Claude Code 里使用的权限模式：
+
+| 模式 | 会触发 Touch Bar？ | 说明 |
+| --- | --- | --- |
+| **默认（无模式）** | ✅ 全部触发 | Write、Edit、Bash 等操作都需要审批 |
+| **Accept Edits** | ⚠️ 部分触发 | Write/Edit 自动批准，Bash 仍然触发 |
+| **Auto Mode** | ⚠️ 部分触发 | CC 自动放行低风险操作，不确定的仍触发 |
+| **Bypass Permissions** | ❌ 不触发 | 所有操作自动批准，hook 不介入 |
+| **Plan Mode** | ❌ 不触发 | 只规划不执行，没有工具调用 |
+
+**推荐的日常测试方式**：使用默认模式，所有需要权限的操作都会经过 Touch Bar。
+
 ## 快速开始
 
 1. 把这个项目放在 Claude Code workspace 里。

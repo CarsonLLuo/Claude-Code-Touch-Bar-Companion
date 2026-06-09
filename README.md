@@ -94,6 +94,20 @@ See [docs/BTT_SETUP.md](docs/BTT_SETUP.md) for the exact BetterTouchTool scripts
 
 `Review` intentionally does not approve the request. It lets Claude Code fall back to the normal on-screen permission flow.
 
+## Claude Code Permission Modes
+
+The Touch Bar Companion only activates when Claude Code triggers a `PermissionRequest`. This depends on which permission mode you use:
+
+| Mode | Triggers Touch Bar? | Notes |
+| --- | --- | --- |
+| **Default (no mode)** | ✅ All requests | Write, Edit, Bash all require approval |
+| **Accept Edits** | ⚠️ Partial | Write/Edit auto-approved, Bash still triggers |
+| **Auto Mode** | ⚠️ Partial | CC auto-approves low-risk ops, uncertain ones still trigger |
+| **Bypass Permissions** | ❌ Never | All ops auto-approved, hook is never called |
+| **Plan Mode** | ❌ Never | No tool calls, nothing to approve |
+
+**Recommended for testing**: use default mode so all permission requests go through the Touch Bar.
+
 ## Quick Start
 
 1. Keep this project in your Claude Code workspace.
