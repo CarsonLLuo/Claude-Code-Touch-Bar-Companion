@@ -506,6 +506,12 @@ def mark_decided(state_path, state, action_id):
         updated["context"] = "Touch Bar allowed"
     elif action_id == "deny":
         updated["context"] = "Touch Bar denied"
+    elif action_id == "timeout":
+        updated["expires_at"] = int(time.time() * 1000) + 3000
+        updated["actions"] = []
+        updated["kind"] = "permission_decision"
+        atomic_write(state_path, json.dumps(updated, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+        return
     else:
         updated["context"] = "Review on screen"
     updated["actions"] = []
@@ -516,8 +522,17 @@ def mark_decided(state_path, state, action_id):
 def wait_for_permission_response(base_dir, state_path, state, request_id):
     deadline = time.time() + permission_wait_ms() / 1000
     path = response_path(base_dir, request_id)
+    last_refresh = time.time()
 
     while time.time() < deadline:
+        # Refresh expires_at every 5 seconds so BTT keeps showing the buttons
+        now = time.time()
+        if now - last_refresh >= 5:
+            refreshed = dict(state)
+            refreshed["expires_at"] = int((now + DEFAULT_EXPIRES_MS / 1000) * 1000)
+            atomic_write(state_path, json.dumps(refreshed, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+            last_refresh = now
+
         try:
             with open(path, "r", encoding="utf-8") as response_file:
                 response = json.load(response_file)
@@ -547,7 +562,8 @@ def main():
         return
 
     now_ms = int(time.time() * 1000)
-    expires_ms = now_ms + DEFAULT_EXPIRES_MS
+    is_stop = event.get("hook_event_name") == "Stop"
+    expires_ms = now_ms + (3000 if is_stop else DEFAULT_EXPIRES_MS)
     request_id = str(uuid.uuid4())
 
     last_event_path = os.path.join(base_dir, "last-event.json")
@@ -591,6 +607,8 @@ def main():
 
     if event.get("hook_event_name") == "PermissionRequest":
         decision = wait_for_permission_response(base_dir, state_path, state, request_id)
+        if not decision:
+            mark_decided(state_path, state, "timeout")
         if decision:
             print(json.dumps(decision, ensure_ascii=False, separators=(",", ":")))
 
