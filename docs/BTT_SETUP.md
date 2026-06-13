@@ -125,7 +125,7 @@ Delete touchbar-test.md    Yes    No    Review
 High-risk delete:
 
 ```text
-Delete tmp    Review    No
+Delete tmp    Review on screen    No
 ```
 
 Unknown / expired state:
@@ -195,7 +195,7 @@ Yes / No / Review
 Recursive deletes, wildcard deletes, directory deletes, and deletes outside the current project are treated as `high` risk and only show:
 
 ```text
-Review / No
+Review on screen / No
 ```
 
 ## Bash Summaries
@@ -243,5 +243,5 @@ find ~/.claude-touchbar/responses -maxdepth 1 -type f -print
 - `Yes all session` returns allow + session `Read` `updatedPermissions`.
 - `No` returns a deny decision.
 - `All edits` returns allow + `updatedPermissions`.
-- `Review` does not approve and falls back to the main Claude Code screen.
+- `Review` / `Review on screen` does not approve and falls back to the main Claude Code screen.
 - No keyboard input is injected into Claude Code.

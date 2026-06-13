@@ -22,7 +22,7 @@ Instead of repeatedly jumping back into the terminal for small approvals, this c
 Read PRD_中文.md                  [Yes] [Yes all session] [No]
 Create permission-edit-test.md   [Yes] [All edits] [No]
 Delete touchbar-test.md          [Yes] [No] [Review]
-Delete tmp                       [Review] [No]
+Delete tmp                       [Review on screen] [No]
 Run npm test                     [Yes] [No] [Review]
 ```
 
@@ -44,7 +44,7 @@ This project gives those small, repetitive decisions a low-friction second surfa
 - **No keyboard injection**: does not type into the terminal or depend on terminal focus.
 - **Touch Bar native feel**: BetterTouchTool widgets show one context item plus up to three actions.
 - **Session actions**: supports `Yes all session` for `Read` and `All edits` for Claude Code edit suggestions.
-- **Risk-aware actions**: high-risk requests hide direct approval and keep `Review / No`.
+- **Risk-aware actions**: high-risk requests hide direct approval and keep `Review on screen / No`.
 - **Short summaries**: long paths and Bash commands are compressed for glanceable Touch Bar labels.
 - **Local-only state**: uses `~/.claude-touchbar/` for state, logs, and response files.
 
@@ -91,10 +91,10 @@ See [docs/BTT_SETUP.md](docs/BTT_SETUP.md) for the exact BetterTouchTool scripts
 | `Read`                                                | `Yes / Yes all session / No` |
 | `Write`, `Edit`, `MultiEdit` with edit suggestion | `Yes / All edits / No`       |
 | normal low or medium risk request                       | `Yes / No / Review`          |
-| high-risk delete or shell command                       | `Review / No`                |
+| high-risk delete or shell command                       | `Review on screen / No`      |
 | expired state                                           | `CC Ready`                   |
 
-`Review` intentionally does not approve the request. It lets Claude Code fall back to the normal on-screen permission flow.
+`Review` / `Review on screen` intentionally does not approve the request. It lets Claude Code fall back to the normal on-screen permission flow.
 
 ## Claude Code Permission Modes
 
@@ -171,10 +171,8 @@ find ~/.claude-touchbar/responses -maxdepth 1 -type f -print
 
 ## Roadmap
 
-- Hide unimplemented `Stop` actions.
 - Prepare a stable two-minute demo path.
 - Expand the real permission test matrix.
-- Remove or narrow temporary `permissions.ask: ["Read"]`.
 - Consider a native helper after the hook/BTT MVP is stable.
 
 ## Status

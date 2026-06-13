@@ -22,7 +22,7 @@
 Read PRD_中文.md                  [Yes] [Yes all session] [No]
 Create permission-edit-test.md   [Yes] [All edits] [No]
 Delete touchbar-test.md          [Yes] [No] [Review]
-Delete tmp                       [Review] [No]
+Delete tmp                       [Review on screen] [No]
 Run npm test                     [Yes] [No] [Review]
 ```
 
@@ -44,7 +44,7 @@ Claude Code 很适合保持 coding flow，但 agentic coding 里仍然会反复�
 - **无键盘注入**：不往终端输入字符，也不依赖终端焦点。
 - **像原生 Touch Bar 控件**：BetterTouchTool 展示一个上下文 item 和最多三个 action item。
 - **本会话授权**：`Read` 支持 `Yes all session`，edit suggestion 支持 `All edits`。
-- **风险感知**：高风险请求不会出现一键批准，只保留 `Review / No`。
+- **风险感知**：高风险请求不会出现一键批准，只保留 `Review on screen / No`。
 - **短摘要**：长路径和 Bash 命令会被压缩成适合 Touch Bar 浏览的标签。
 - **本地状态**：状态、日志和 response 都写在 `~/.claude-touchbar/`。
 
@@ -91,10 +91,10 @@ Claude Code structured hook decision
 | `Read` | `Yes / Yes all session / No` |
 | 带 edit suggestion 的 `Write`、`Edit`、`MultiEdit` | `Yes / All edits / No` |
 | 常规低/中风险请求 | `Yes / No / Review` |
-| 高风险删除或 shell 命令 | `Review / No` |
+| 高风险删除或 shell 命令 | `Review on screen / No` |
 | 过期状态 | `CC Ready` |
 
-`Review` 不会批准请求，只是把控制权交回 Claude Code 主屏幕权限流程。
+`Review` / `Review on screen` 不会批准请求，只是把控制权交回 Claude Code 主屏幕权限流程。
 
 ## Claude Code 权限模式
 
@@ -172,10 +172,8 @@ find ~/.claude-touchbar/responses -maxdepth 1 -type f -print
 
 ## Roadmap
 
-- 隐藏尚未接线的 `Stop` actions。
 - 准备稳定的两分钟 demo path。
 - 扩展真实权限测试矩阵。
-- 移除或收窄临时 `permissions.ask: ["Read"]`。
 - 在 hook/BTT MVP 稳定后，再考虑 native helper。
 
 ## 状态

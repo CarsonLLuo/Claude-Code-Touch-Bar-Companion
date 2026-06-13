@@ -421,14 +421,8 @@ def actions_for_state(event, risk):
 
     if event_name == "PermissionRequest":
         return [
-            {"id": "review", "label": "Review"},
+            {"id": "review", "label": "Review on screen"},
             {"id": "deny", "label": "No"},
-        ]
-
-    if event_name == "Stop":
-        return [
-            {"id": "continue", "label": "Continue"},
-            {"id": "stop", "label": "Stop"},
         ]
 
     return []
@@ -546,9 +540,9 @@ def wait_for_permission_response(base_dir, state_path, state, request_id):
 
         action_id = response.get("action_id") or ""
         mark_decided(state_path, state, action_id)
-        return decision_for_response(response)
+        return True, decision_for_response(response)
 
-    return None
+    return False, None
 
 
 def main():
@@ -606,8 +600,8 @@ def main():
     )
 
     if event.get("hook_event_name") == "PermissionRequest":
-        decision = wait_for_permission_response(base_dir, state_path, state, request_id)
-        if not decision:
+        handled, decision = wait_for_permission_response(base_dir, state_path, state, request_id)
+        if not handled:
             mark_decided(state_path, state, "timeout")
         if decision:
             print(json.dumps(decision, ensure_ascii=False, separators=(",", ":")))

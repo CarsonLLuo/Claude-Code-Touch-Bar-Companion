@@ -10,7 +10,7 @@ It observes Claude Code events, writes local Touch Bar state, and for `Permissio
 - `No` -> `behavior: deny`
 - `Yes all session` -> `behavior: allow` with session `Read` `updatedPermissions`
 - `All edits` -> `behavior: allow` with `updatedPermissions`
-- `Review` -> no decision, fallback to the normal Claude Code permission screen
+- `Review` / `Review on screen` -> no decision, fallback to the normal Claude Code permission screen
 
 No keyboard injection is used.
 
@@ -263,6 +263,6 @@ This project currently asks before every `Read` tool call:
 
 This is only for validating the Touch Bar permission flow. Remove it or replace it with narrower rules after the MVP hook path is proven.
 
-## Current Limitation
+## Stop Events
 
-`Stop` events currently write `Claude done`, but the implementation can still generate `Continue / Stop` actions that are not wired to real Claude Code control. The next implementation step should hide those actions.
+`Stop` events write `Claude done` as a glanceable status indicator and show no action buttons. Stopping Claude Code from the Touch Bar is intentionally not supported: `Stop` is a notification hook that fires after the turn already ended, so there is nothing to interrupt. The Touch Bar focuses on permission approvals, which is the actual high-friction case.

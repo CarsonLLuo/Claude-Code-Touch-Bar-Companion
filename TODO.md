@@ -19,21 +19,18 @@ MVP 核心链路已跑通。`PermissionRequest` hook 端到端可用，Touch Bar
 - [x] 权限请求等待期间按钮持续显示（expires_at 动态续期）
 - [x] 超时后立即切回 CC Ready（不挂旧状态）
 - [x] Stop 事件后快速切回 CC Ready（3 秒过期）
-- [ ] Stop 状态不显示未实现的 Continue / Stop action
+- [x] Stop 只显示 Claude done，不提供动作按钮
 - [ ] demo 可在 2 分钟内稳定复现
 
 ## 待完成
 
 ### P0
 
-- [ ] 隐藏 `Stop` 事件的 Continue / Stop 按钮
-  - 验收：Stop 只显示 `Claude done`，actions 为空
-
 - [ ] 完成真实测试矩阵
   - `Read` → Yes / No
   - `Write/Create` → All edits
   - 项目内单文件 `rm` → Yes
-  - `rm -rf` → Review / No
+  - `rm -rf` → Review on screen / No
   - `python3 ...` → 短摘要
 
 - [ ] 准备 2 分钟 demo checklist
@@ -43,6 +40,8 @@ MVP 核心链路已跑通。`PermissionRequest` hook 端到端可用，Touch Bar
 - [ ] 观察 BTT 1-2 秒刷新长期稳定性
 - [ ] 考虑导出 BTT preset 方便新环境复现
 - [ ] 多 session 状态隔离
+- [ ] 优化 BTT UI 流畅度
+- [ ] 考虑寻找替换BTT方案
 
 ## 暂不做
 
