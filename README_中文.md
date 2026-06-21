@@ -102,13 +102,15 @@ Touch Bar Companion 的触发取决于你在 Claude Code 里使用的权限模�
 
 | 模式 | 会触发 Touch Bar？ | 说明 |
 | --- | --- | --- |
-| **默认（无模式）** | ✅ 全部触发 | Write、Edit、Bash 等操作都需要审批 |
+| **默认（无模式）** | ✅ 需要审批时触发 | Write、Edit、Bash 通常需要审批；日常不建议强制项目内普通 `Read` 审批 |
 | **Accept Edits** | ⚠️ 部分触发 | Write/Edit 自动批准，Bash 仍然触发 |
 | **Auto Mode** | ⚠️ 部分触发 | CC 自动放行低风险操作，不确定的仍触发 |
 | **Bypass Permissions** | ❌ 不触发 | 所有操作自动批准，hook 不介入 |
 | **Plan Mode** | ❌ 不触发 | 只规划不执行，没有工具调用 |
 
-**推荐的日常测试方式**：使用默认模式，所有需要权限的操作都会经过 Touch Bar。
+**推荐的日常使用方式**：不要强制项目内普通 `Read` 反复审批，把 Touch Bar 留给 `Write`、`Edit`、`Bash`、删除等有副作用的操作。
+
+**推荐的测试/demo 方式**：使用默认模式，并可临时添加 `permissions.ask: ["Read"]`，方便稳定复现 `Read` 的 Touch Bar flow。
 
 ## 快速开始
 
@@ -118,7 +120,7 @@ Touch Bar Companion 的触发取决于你在 Claude Code 里使用的权限模�
 4. 触发一个 Claude Code 权限请求。
 5. 在 Touch Bar 上点击对应 action。
 
-MVP 测试期间，项目会临时让 `Read` 也触发权限请求，方便验证 Touch Bar flow。日常使用前可以移除或收窄这个规则。
+日常使用时，项目内普通 `Read` 不应该反复要求确认。如果需要测试或演示 `Read` flow，可以临时在本地 Claude Code 配置里加入 `permissions.ask: ["Read"]`，测试结束后再移除。
 
 ## 项目结构
 

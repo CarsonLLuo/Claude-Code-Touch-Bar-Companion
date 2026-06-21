@@ -110,6 +110,8 @@ Read request:
 Read PRD_中文.md    Yes    Yes all session    No
 ```
 
+This state is mainly for testing/demo or for sensitive `Read` rules. Routine project-local reads should not be forced through Touch Bar during daily use.
+
 Create / edit request with Claude Code session edit suggestion:
 
 ```text

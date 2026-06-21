@@ -398,7 +398,8 @@ def actions_for_state(event, risk):
                         "label": "Yes all session",
                         "updated_permissions": [read_permission],
                     },
-                    {"id": "deny", "label": "No"},
+                    {"id": "deny", 
+                    "label": "No"},
                 ]
 
         edit_session_suggestion = session_edit_suggestion(event)

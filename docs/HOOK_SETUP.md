@@ -18,7 +18,8 @@ No keyboard injection is used.
 
 - `.claude/settings.local.json`
   - Registers project-local hooks.
-  - Adds temporary `permissions.ask: ["Read"]` so file reads trigger permission prompts during MVP testing.
+  - Daily use should not force routine project-local `Read` approvals.
+  - For testing/demo only, you can temporarily add `permissions.ask: ["Read"]` so file reads trigger permission prompts.
   - Gives the `PermissionRequest` hook enough timeout to wait for Touch Bar input.
 
 - `.claude/hooks/touchbar-hook.sh`
@@ -251,9 +252,11 @@ Expected Touch Bar state:
 Create permission-edit-test.md    Yes    All edits    No
 ```
 
-## Temporary Permission Setting
+## Optional Read Permission Test
 
-This project currently asks before every `Read` tool call:
+Daily use should not ask before every routine project-local `Read` tool call. Repeated read approvals add friction and can create confirmation fatigue.
+
+If you need to validate or demo the `Read` Touch Bar flow, temporarily add:
 
 ```json
 "permissions": {
@@ -261,7 +264,7 @@ This project currently asks before every `Read` tool call:
 }
 ```
 
-This is only for validating the Touch Bar permission flow. Remove it or replace it with narrower rules after the MVP hook path is proven.
+Remove it again after testing, or replace it with narrower rules for sensitive paths only.
 
 ## Stop Events
 

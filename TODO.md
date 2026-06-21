@@ -27,7 +27,7 @@ MVP 核心链路已跑通。`PermissionRequest` hook 端到端可用，Touch Bar
 ### P0
 
 - [ ] 完成真实测试矩阵
-  - `Read` → Yes / No
+  - 测试/demo 模式下 `Read` → Yes / No
   - `Write/Create` → All edits
   - 项目内单文件 `rm` → Yes
   - `rm -rf` → Review on screen / No

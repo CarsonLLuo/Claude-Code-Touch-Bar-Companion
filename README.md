@@ -102,13 +102,15 @@ The Touch Bar Companion only activates when Claude Code triggers a `PermissionRe
 
 | Mode                         | Triggers Touch Bar? | Notes                                                       |
 | ---------------------------- | ------------------- | ----------------------------------------------------------- |
-| **Default (no mode)**  | ✅ All requests     | Write, Edit, Bash all require approval                      |
+| **Default (no mode)**  | ✅ Approval requests | Write, Edit, Bash usually require approval; project-local `Read` does not need to be forced for daily use |
 | **Accept Edits**       | ⚠️ Partial        | Write/Edit auto-approved, Bash still triggers               |
 | **Auto Mode**          | ⚠️ Partial        | CC auto-approves low-risk ops, uncertain ones still trigger |
 | **Bypass Permissions** | ❌ Never            | All ops auto-approved, hook is never called                 |
 | **Plan Mode**          | ❌ Never            | No tool calls, nothing to approve                           |
 
-**Recommended for testing**: use default mode so all permission requests go through the Touch Bar.
+**Recommended for daily use**: do not force routine project-local `Read` approvals. Keep the Touch Bar focused on side-effecting actions such as `Write`, `Edit`, `Bash`, and deletes.
+
+**Recommended for testing/demo**: use default mode, and optionally add `permissions.ask: ["Read"]` so the `Read` Touch Bar flow is easy to reproduce.
 
 ## Quick Start
 
@@ -118,7 +120,7 @@ The Touch Bar Companion only activates when Claude Code triggers a `PermissionRe
 4. Trigger a Claude Code permission request.
 5. Tap the Touch Bar action.
 
-During MVP testing, this project intentionally asks before `Read` calls so the Touch Bar flow is easy to test. Remove or narrow that rule once the flow is proven for daily use.
+For daily use, routine project-local `Read` calls should not require repeated approval. If you want to test or demo the `Read` flow, temporarily add `permissions.ask: ["Read"]` to your local Claude Code settings, then remove it again after testing.
 
 ## Project Structure
 
