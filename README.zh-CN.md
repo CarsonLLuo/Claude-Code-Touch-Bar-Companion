@@ -64,6 +64,12 @@ Context 是白底的只读 item，前面可以显示 `~/.claude-touchbar/icon.pn
 
 套餐的 5 小时额度和每周（7 天）额度以电池的形式显示：数字是**剩余**的电量，不是已经用掉的。
 
+![Control Strip：5 小时剩 47%，下方是分段电池](image/README/usage-control-strip.png)
+
+![点开后：5 小时和 7 天两条电池，附带剩余电量和重置时间](image/README/usage-on-demand.png)
+
+*上：Control Strip。下：点开之后。在真实 Touch Bar 上截取，数据为示例数据。*
+
 | 层级 | 位置 | 显示什么 |
 | --- | --- | --- |
 | 常驻 | Control Strip，一直可见 | 当前更紧的那个窗口，比如 `5h 57` 加一条细的分段电池；电量变少时数字会变黄、再变红 |

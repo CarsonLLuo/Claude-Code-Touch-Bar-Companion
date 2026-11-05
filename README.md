@@ -64,6 +64,12 @@ The context item is a white, display-only pill, optionally prefixed by an icon f
 
 Your plan's 5-hour and weekly (7-day) limits are shown as batteries: the number is the charge **left**, not what you have used.
 
+![Control Strip: 5h with 47% left over a segmented battery](image/README/usage-control-strip.png)
+
+![After tapping it: 5h and 7d batteries with the charge left and when they reset](image/README/usage-on-demand.png)
+
+*Top: the Control Strip. Bottom: after tapping it. Captured on a real Touch Bar with example data.*
+
 | Tier | Where | What you see |
 | --- | --- | --- |
 | Ambient | Control Strip, always visible | The tighter window, e.g. `5h 57` over a thin segmented battery; the number turns yellow, then red, as it runs low |
