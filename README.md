@@ -7,7 +7,7 @@
 
 ![macOS](https://img.shields.io/badge/macOS-Touch%20Bar-111827?style=for-the-badge&logo=apple&logoColor=white)
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-Hooks-D97706?style=for-the-badge)
-![BetterTouchTool](https://img.shields.io/badge/BetterTouchTool-Ready-2563EB?style=for-the-badge)
+![Native Swift](https://img.shields.io/badge/Native-Swift%20App-F05138?style=for-the-badge&logo=swift&logoColor=white)
 ![No Keyboard Injection](https://img.shields.io/badge/No%20Keyboard%20Injection-Safe-16A34A?style=for-the-badge)
 
 ![1780981115328](image/README/1780981115328.png)
@@ -16,7 +16,7 @@ Turn your MacBook Pro Touch Bar into a compact permission console for Claude Cod
 
 Instead of repeatedly jumping back into the terminal for small approvals, this companion surfaces the current Claude Code permission request on the Touch Bar, lets you tap the right action, and sends the result back through Claude Code's structured `PermissionRequest` hook output.
 
-> Scope note: this MVP is currently developed specifically for the BetterTouchTool workflow. Future iterations may add a native helper or other interaction surfaces once the hook flow is stable.
+> Scope note: the Touch Bar is rendered by a native Swift menu bar app in [app/](app/). The original BetterTouchTool setup is kept as a legacy option.
 
 ```text
 Read PRD_中文.md                  [Yes] [Yes all session] [No]
@@ -42,7 +42,7 @@ This project gives those small, repetitive decisions a low-friction second surfa
 
 - **Structured hook flow**: returns `allow`, `deny`, and `updatedPermissions` through Claude Code hooks.
 - **No keyboard injection**: does not type into the terminal or depend on terminal focus.
-- **Touch Bar native feel**: BetterTouchTool widgets show one context item plus up to three actions.
+- **Native Touch Bar app**: a lightweight Swift menu bar app shows one context item plus up to three color-coded actions, pops up only when a request needs an answer, and reacts to state changes instantly (no polling).
 - **Session actions**: supports `Yes all session` for `Read` and `All edits` for Claude Code edit suggestions.
 - **Risk-aware actions**: high-risk requests hide direct approval and keep `Review on screen / No`.
 - **Short summaries**: long paths and Bash commands are compressed for glanceable Touch Bar labels.
@@ -60,10 +60,7 @@ Claude Code PermissionRequest
 ~/.claude-touchbar/state.json
         |
         v
-BetterTouchTool Touch Bar widgets
-        |
-        v
-scripts/btt_action.py
+app/ TouchBarCompanion (Swift menu bar app)
         |
         v
 ~/.claude-touchbar/responses/<request_id>.json
@@ -74,15 +71,17 @@ Claude Code structured hook decision
 
 ## Touch Bar Layout
 
-Create four BetterTouchTool Shell Script / Task widgets:
+The Swift app renders:
 
 ```text
-[Context] [Action 1] [Action 2] [Action 3]
+[x] [Logo Context] [Action 1] [Action 2] [Action 3]
 ```
 
-The context item is display-only by default. It tells you what Claude Code is asking for; optionally, its click action can run `scripts/start_claude_iterm2.sh` to launch Claude Code in a new iTerm2 window. The action items call `scripts/btt_action.py` with index `0`, `1`, or `2`.
+The context item is a white, display-only pill that tells you what Claude Code is asking for, optionally prefixed by an icon from `~/.claude-touchbar/icon.png`. Actions are color-coded by meaning: `Yes` green, session-wide allow blue, `No` red, review actions gray.
 
-See [docs/BTT_SETUP.md](docs/BTT_SETUP.md) for the exact BetterTouchTool scripts.
+When nothing needs an answer, the regular Touch Bar (including Esc) stays in place; a `CC` button in the Control Strip opens the companion bar manually.
+
+See [docs/APP_SETUP.md](docs/APP_SETUP.md) for build and run details. The legacy BetterTouchTool setup is in [docs/BTT_SETUP.md](docs/BTT_SETUP.md).
 
 ## Current Behavior
 
@@ -116,7 +115,7 @@ The Touch Bar Companion only activates when Claude Code triggers a `PermissionRe
 
 1. Keep this project in your Claude Code workspace.
 2. Ensure the project-local hook is registered through [.claude/settings.local.json](.claude/settings.local.json).
-3. Configure the four BetterTouchTool widgets from [docs/BTT_SETUP.md](docs/BTT_SETUP.md).
+3. Build and run the Swift app: `cd app && swift build && .build/debug/TouchBarCompanion` (see [docs/APP_SETUP.md](docs/APP_SETUP.md)).
 4. Trigger a Claude Code permission request.
 5. Tap the Touch Bar action.
 
@@ -127,10 +126,12 @@ For daily use, routine project-local `Read` calls should not require repeated ap
 ```text
 .claude/hooks/touchbar_hook.py   # Claude Code hook: state writer and decision bridge
 .claude/hooks/touchbar-hook.sh   # hook shell wrapper
-scripts/btt_state.py             # BetterTouchTool dynamic label reader
-scripts/btt_action.py            # BetterTouchTool action writer
-scripts/start_claude_iterm2.sh   # optional Context item click action for launching Claude Code
-docs/BTT_SETUP.md                # BetterTouchTool setup guide
+app/                             # native Swift Touch Bar app (SwiftPM)
+scripts/btt_state.py             # legacy: BetterTouchTool dynamic label reader
+scripts/btt_action.py            # legacy: BetterTouchTool action writer
+scripts/start_claude_iterm2.sh   # legacy: BTT Context click action for launching Claude Code
+docs/APP_SETUP.md                # Swift app setup guide
+docs/BTT_SETUP.md                # legacy: BetterTouchTool setup guide
 docs/HOOK_SETUP.md               # hook behavior and manual tests
 ONE_PAGE.md                      # project one-pager
 README_中文.md                    # Chinese README
@@ -148,6 +149,7 @@ The companion is deliberately conservative:
 - Event logs redact prompts, assistant messages, and file contents.
 - State files are written atomically.
 - Each permission request gets a fresh `request_id`.
+- A tap is ignored if the request on disk has changed since the button was drawn.
 
 This is a companion interface, not a replacement for Claude Code's main permission UI.
 
@@ -173,10 +175,13 @@ find ~/.claude-touchbar/responses -maxdepth 1 -type f -print
 
 ## Roadmap
 
-- Prepare a stable two-minute demo path.
-- Expand the real permission test matrix.
-- Consider a native helper after the hook/BTT MVP is stable.
+- Run the full permission test matrix on the Swift app and prepare a two-minute demo.
+- Make Touch Bar buttons configurable through a config file.
+- Add a SwiftUI settings window for customizing buttons.
+- Open-source distribution: Swift hook binary (no Python dependency), Homebrew cask.
+
+See [TODO.md](TODO.md) for details.
 
 ## Status
 
-MVP is functional for real Claude Code permission requests with BetterTouchTool on macOS Touch Bar. The project is currently BTT-first and will iterate from this foundation.
+MVP is functional for real Claude Code permission requests on the macOS Touch Bar. The native Swift app has replaced BetterTouchTool as the renderer.

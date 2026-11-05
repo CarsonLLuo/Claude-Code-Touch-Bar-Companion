@@ -23,6 +23,10 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# Swift Package Manager
+.build/
+.swiftpm/
+
 # Local runtime state
 .claude-touchbar/
 responses/
