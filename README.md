@@ -2,16 +2,16 @@
 
 # Claude Code Touch Bar Companion
 
-**Answer Claude Code permission requests from your MacBook Pro Touch Bar**
+**Answer Claude Code permission requests and watch your plan usage from the MacBook Pro Touch Bar**
 
-When Claude Code asks to edit a file or run a command, the request shows up on the Touch Bar as a short summary with a few buttons. One tap sends the answer back through Claude Code's own hooks. You never have to switch to the terminal, and no keystrokes are injected.
+When Claude Code asks to edit a file or run a command, the request shows up on the Touch Bar as a short summary with a few buttons. One tap sends the answer back through Claude Code's own hooks. You never have to switch to the terminal, and no keystrokes are injected. The rest of the time, a small battery in the Control Strip shows how much of your 5-hour and weekly limits is left.
 
 ![status](https://img.shields.io/badge/status-MVP-orange?style=flat-square)
 ![platform](https://img.shields.io/badge/platform-macOS_Touch_Bar-black?style=flat-square&logo=apple)
 ![app](https://img.shields.io/badge/app-Swift-F05138?style=flat-square&logo=swift&logoColor=white)
 ![integration](https://img.shields.io/badge/integration-Claude_Code_hooks-D97706?style=flat-square)
 
-[Design principles](#design-principles) · [How it works](#how-it-works) · [Quick start](#quick-start) · [Roadmap](#roadmap)
+[Design principles](#design-principles) · [How it works](#how-it-works) · [Plan usage](#plan-usage) · [Quick start](#quick-start) · [Roadmap](#roadmap)
 
 English | [简体中文](./README.zh-CN.md)
 
@@ -19,7 +19,7 @@ English | [简体中文](./README.zh-CN.md)
 
 ---
 
-> **Status: the MVP works end to end** with real Claude Code permission requests. The Touch Bar is now rendered by a native Swift menu bar app; the original BetterTouchTool setup is kept as a legacy option.
+> **Status: the MVP works end to end** with real Claude Code permission requests, and plan usage (5h / 7d) is shown from real account data. The Touch Bar is rendered by a native Swift menu bar app; the original BetterTouchTool setup is kept as a legacy option.
 
 ![Touch Bar screenshot](image/README/1780981115328.png)
 
@@ -40,9 +40,9 @@ Each one is small, but each one pulls you back to the terminal and out of whatev
 1. **Structured, not injected.** Answers go back as structured `PermissionRequest` hook output (`allow`, `deny`, `updatedPermissions`). Nothing is typed into the terminal, and terminal focus does not matter.
 2. **Conservative about risk.** High-risk and unknown-risk requests never get a one-tap approval, only `Review on screen / No`. `Review` hands control back to Claude Code; it never approves.
 3. **Glanceable.** Long paths and Bash commands are compressed into short labels such as `Delete tmp` or `Run npm test`.
-4. **Out of the way.** The companion bar pops up only when a request needs an answer, then steps aside so the regular Touch Bar (including Esc) comes back.
+4. **Out of the way.** The companion bar pops up only when a request needs an answer, then steps aside so the regular Touch Bar (including Esc) comes back. Permission requests may interrupt you; usage never does.
 5. **Never act on stale state.** Every request gets a fresh `request_id`; a tap is ignored if the request has changed since the button was drawn.
-6. **Local only.** State, responses and logs live in `~/.claude-touchbar/`. Logs redact prompts, assistant messages and file contents.
+6. **Local by default.** State, responses and logs live in `~/.claude-touchbar/`. Logs redact prompts, assistant messages and file contents. The only network request is the opt-in usage fetch to Anthropic's own API.
 
 ## What the Touch Bar shows
 
@@ -59,6 +59,38 @@ Each one is small, but each one pulls you back to the terminal and out of whatev
 | Nothing pending | `CC Ready` | none |
 
 The context item is a white, display-only pill, optionally prefixed by an icon from `~/.claude-touchbar/icon.png`. Actions are colored by meaning: `Yes` green, session-wide allow blue, `No` red, review actions gray.
+
+## Plan usage
+
+Your plan's 5-hour and weekly (7-day) limits are shown as batteries: the number is the charge **left**, not what you have used.
+
+| Tier | Where | What you see |
+| --- | --- | --- |
+| Ambient | Control Strip, always visible | The tighter window, e.g. `5h 57` over a thin segmented battery; the number turns yellow, then red, as it runs low |
+| On demand | Tap the Control Strip item | Both windows as long batteries, with the time until 5h resets and the weekday 7d resets |
+| Interrupt | On a permission request | Nothing, unless 5h has 10% or less left: then a red low-battery badge |
+
+The tighter window is the one closer to trouble. 7d counts as tight when it is low or when you are using it faster than the week is passing; on a tie, 5h wins because it decides the next few hours.
+
+Each battery is split into time slices, like F1 minisectors: 10 slices of 30 minutes for 5h, 7 slices of one day for 7d. Each slice is colored by how much was used in it compared with an even share:
+
+| Slice | Meaning |
+| --- | --- |
+| Green | At or under pace |
+| Yellow | Up to 1.5× pace |
+| Red | Over 1.5× pace |
+| White outline | The current slice |
+| Dark | Not reached yet |
+| Hatched | Not recorded, e.g. before the app started or while the Mac was asleep |
+
+The whole battery turns gray when no update has arrived for 30 minutes, and a bolt appears when 5h refills within 15 minutes.
+
+**Where the numbers come from.** The usage API only reports the current totals, so the app records a snapshot every 5 minutes and builds the slices from the differences. There are two sources, both writing the same files:
+
+- **Your Claude account (recommended, opt-in).** Turn on *Fetch Usage from Claude Account* in the `CC` menu bar menu. The app calls the endpoint behind Claude Code's `/usage` command, so usage from the terminal, the desktop app and claude.ai all counts. It reads Claude Code's sign-in token from the keychain on each fetch, keeps it in memory for that one request, and never refreshes it. The endpoint is undocumented and may change.
+- **Claude Code status line (fallback).** [`touchbar_statusline.py`](.claude/hooks/touchbar_statusline.py) records the `rate_limits` Claude Code passes to its status line. It only runs in terminal sessions, not in the desktop app.
+
+Usage data is only available on Pro, Max and Ultra plans. See [docs/APP_SETUP.md](docs/APP_SETUP.md#plan-usage-5h--7d) for setup details and limits.
 
 ## How it works
 
@@ -110,6 +142,7 @@ Requires a MacBook Pro with a physical Touch Bar, macOS 12 or later, Python 3 an
 
    It lives in the menu bar as `CC`, with no Dock icon.
 3. Trigger a Claude Code permission request and tap an action on the Touch Bar.
+4. Optional: turn on *Fetch Usage from Claude Account* in the `CC` menu to see your plan usage.
 
 See [docs/APP_SETUP.md](docs/APP_SETUP.md) for details and [docs/HOOK_SETUP.md](docs/HOOK_SETUP.md) for hook behavior.
 
@@ -124,10 +157,11 @@ find ~/.claude-touchbar/responses -maxdepth 1 -type f     # response files
 ## Roadmap
 
 - [x] **MVP**: hook flow with BetterTouchTool, risk-aware actions, session permissions
-- [ ] **Phase 1: Native app**: Swift app replaces BetterTouchTool (done); full permission test matrix and a two-minute demo
-- [ ] **Phase 2: Configurable**: Touch Bar buttons defined in a config file, with the safety rules enforced in code
-- [ ] **Phase 3: Settings window**: SwiftUI editor for buttons with a live Touch Bar preview
-- [ ] **Phase 4: Open-source distribution**: hook rewritten in Swift (no Python dependency), one-click hook install, Homebrew cask
+- [ ] **Phase 1: Native app**: Swift app replaces BetterTouchTool and passes the permission test matrix (done); two-minute demo rehearsal
+- [ ] **Phase 2: Usage and mascot**: plan usage as segmented batteries (done); an animated character that follows Claude Code's state
+- [ ] **Phase 3: Configurable**: Touch Bar buttons defined in a config file, with the safety rules enforced in code
+- [ ] **Phase 4: Settings window**: SwiftUI editor for buttons with a live Touch Bar preview
+- [ ] **Phase 5: Open-source distribution**: hook rewritten in Swift (no Python dependency), one-click hook install, launch at login, Homebrew cask
 
 Details are in [TODO.md](TODO.md).
 
@@ -137,7 +171,8 @@ Details are in [TODO.md](TODO.md).
 | --- | --- |
 | Hook | Python 3, standard library only |
 | Touch Bar app | Swift + AppKit, built with SwiftPM; undocumented system-modal Touch Bar APIs resolved at runtime |
-| Communication | Local JSON files with atomic writes, no network |
+| Communication | Local JSON files with atomic writes |
+| Usage data | Opt-in fetch from `api.anthropic.com/api/oauth/usage`; Claude Code status line as fallback |
 | Tests | Swift Testing |
 | Legacy renderer | BetterTouchTool widgets + `scripts/btt_*.py` ([docs/BTT_SETUP.md](docs/BTT_SETUP.md)) |
 
@@ -146,6 +181,7 @@ Details are in [TODO.md](TODO.md).
 ```text
 .claude/hooks/touchbar_hook.py   # hook: writes state, returns the decision
 .claude/hooks/touchbar-hook.sh   # hook shell wrapper
+.claude/hooks/touchbar_statusline.py  # status line: records plan usage (fallback source)
 app/                             # native Swift Touch Bar app (SwiftPM)
 docs/APP_SETUP.md                # Swift app setup
 docs/HOOK_SETUP.md               # hook behavior and manual tests
