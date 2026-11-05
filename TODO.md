@@ -35,13 +35,14 @@ BTT 试用已到期，目前没有可用的 Touch Bar 渲染层。方向调整�
 - [x] 点击按钮写 `responses/<request_id>.json` 和 `actions.jsonl`，沿用现有文件协议；request_id 不一致时忽略点击
 - [x] Python hook 暂不改动
 - [ ] 移植 BTT 的"点 Context 启动 iTerm2 + Claude"（可选）
-- [ ] 完成真实测试矩阵（不安装 BTT）
-  - 测试/demo 模式下 `Read` → Yes / No
-  - `Write/Create` → All edits
-  - 项目内单文件 `rm` → Yes
-  - `rm -rf` → Review on screen / No
-  - `python3 ...` → 短摘要
-- [ ] 准备 2 分钟 demo checklist
+- [x] 完成真实测试矩阵（不安装 BTT，2026-11-05 真机通过）
+  - [x] 测试/demo 模式下 `Read` → Yes / No
+  - [x] `Write/Create` → All edits
+  - [x] 项目内单文件 `rm` → Yes
+  - [x] `rm -rf` → Review on screen / No
+  - [x] `python3 ...` → 短摘要
+- [x] 准备 2 分钟 demo checklist → `docs/DEMO.md`
+- [ ] 按 `docs/DEMO.md` 完整彩排一遍，确认 2 分钟内稳定复现
 
 验收：卸载 BTT 后测试矩阵全部通过，demo 可稳定复现。
 
