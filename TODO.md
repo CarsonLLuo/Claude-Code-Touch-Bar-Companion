@@ -48,8 +48,10 @@ BTT 试用已到期，目前没有可用的 Touch Bar 渲染层。方向调整�
 
 ### 阶段 2：用量显示 + 卡通形象（P0）
 
-- [ ] 用量显示（会话 5 小时 / 周）
-  - 数据来源：官方 status line stdin JSON 的 `rate_limits.five_hour` / `rate_limits.seven_day`（`used_percentage`、`resets_at`），可附带 `context_window.used_percentage`、`cost.total_cost_usd`；不用未公开的 OAuth 用量接口
+- [x] 用量显示（会话 5 小时 / 周）：2026-11-05 用真实账号数据在真机上验证三层显示
+  - 主数据源（可选开启，菜单栏 `CC` → Fetch Usage from Claude Account）：app 每 5 分钟调用 `/usage` 背后的未公开接口 `api.anthropic.com/api/oauth/usage`，token 通过 `/usr/bin/security` 从钥匙串读取，只在内存里用一次，不续期；覆盖终端、桌面 app、claude.ai 的用量
+  - 备用数据源：官方 status line stdin JSON 的 `rate_limits.five_hour` / `rate_limits.seven_day`（只在终端会话中运行，桌面 app 不触发）
+  - 后续可用：接口还返回 `seven_day_breakdown`（Claude Code / Chats / Cowork 各占多少）和官方 `severity`，可以放进按需层
   - 新增 status line 脚本，把数据原子写入 `~/.claude-touchbar/usage.json`，同时输出一行终端状态文字
   - app 监听 `usage.json`
   - 三层分工（权限可以打断，用量永远不打断）：
@@ -63,7 +65,9 @@ BTT 试用已到期，目前没有可用的 Touch Bar 渲染层。方向调整�
   - 5h 窗口 15 分钟内重置时，常驻电池旁显示充电闪电
   - 限制：`rate_limits` 只有 Pro / Max / Ultra 订阅且首次 API 响应后才有，API key 用户只能显示花费；只在终端 CLI 会话中运行，空闲时不刷新；多会话时上下文和花费只反映最近活跃的会话
   - 历史数据的限制：claude.ai 网页 / 桌面 app 和 Claude Code 共用额度，其他地方的用量会被记到下一次快照所在的格子；没开 Claude Code 的时段没有快照，只能画斜纹
-  - 待实测：Control Strip 能放多宽；放不下分段电池就退回只显示数字的简单电池
+  - 实测：Control Strip 每格约 50pt，横排会被整体缩小；改为两行（上 `5h 47`，下细分段电池）
+  - 实测：按需层 context 胶囊 + 两条 170pt 电池放不下，7d 被系统隐藏；改为 context 只显示 logo、电池 130pt
+  - 窗口的第一个快照如果不在第一格，只作为基线，不把之前的用量记到当前格
 - [ ] 卡通形象：Touch Bar 上的动画小角色，跟着 Claude Code 状态动
   - 状态映射（基于 hook 已有事件）：空闲 → 睡觉 / 眨眼；`PreToolUse` → 原地小跑；`PermissionRequest` → 跳起来挥手（替代 context 前的 logo）；`Stop` → 转圈庆祝；`PostToolUseFailure` → 缩一下
   - 位置：平时在 Control Strip 原地动，不占主区域、不挡 Esc；弹出权限请求时出现在 companion bar 里，可以走几步

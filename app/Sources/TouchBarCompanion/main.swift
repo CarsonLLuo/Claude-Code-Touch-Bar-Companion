@@ -8,6 +8,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
     private var directorySource: DispatchSourceFileSystemObject?
     private var expiryTimer: Timer?
+    private var minuteTimer: Timer?
+    private lazy var accountUsage = AccountUsageFetcher(baseDir: baseDir)
+    private let accountUsageMenuItem = NSMenuItem(
+        title: "Fetch Usage from Claude Account", action: #selector(toggleAccountUsage), keyEquivalent: "")
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         setUpStatusItem()
@@ -17,19 +21,36 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             ActionResponder.perform(index: index, expectedRequestId: requestId, baseDir: baseDir)
             reload()
         }
+        touchBar.onTrayTap = { [weak self] in self?.accountUsage.fetch(ifOlderThan: 30) }
         touchBar.install()
+        accountUsage.start()
 
         watchStateDirectory()
         reload()
+        // Usage sectors, reset countdowns and staleness move with the clock.
+        minuteTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
+            self?.reload()
+        }
     }
 
     private func setUpStatusItem() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         item.button?.title = "CC"
         let menu = NSMenu()
+        accountUsageMenuItem.target = self
+        accountUsageMenuItem.state = accountUsage.isEnabled ? .on : .off
+        accountUsageMenuItem.toolTip =
+            "Reads Claude Code's sign-in token from your keychain to check 5h / 7d usage every 5 minutes."
+        menu.addItem(accountUsageMenuItem)
+        menu.addItem(.separator())
         menu.addItem(withTitle: "Quit Touch Bar Companion", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         item.menu = menu
         statusItem = item
+    }
+
+    @objc private func toggleAccountUsage() {
+        accountUsage.isEnabled.toggle()
+        accountUsageMenuItem.state = accountUsage.isEnabled ? .on : .off
     }
 
     /// The hook replaces state.json atomically (new inode), so watch the directory
@@ -51,7 +72,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func reload() {
         let state = CompanionStore.activeState(in: baseDir)
-        touchBar.render(state)
+        touchBar.render(state, usage: UsageStore.load(in: baseDir))
 
         // Fall back to "CC Ready" as soon as the state expires, even if no file changes.
         expiryTimer?.invalidate()

@@ -4,6 +4,9 @@ import CompanionCore
 extension NSTouchBarItem.Identifier {
     static let companionTray = Self("com.claude-touchbar-companion.tray")
     static let companionContext = Self("com.claude-touchbar-companion.context")
+    static let companionUsageBadge = Self("com.claude-touchbar-companion.usage.badge")
+    static let companionUsageFiveHour = Self("com.claude-touchbar-companion.usage.5h")
+    static let companionUsageSevenDay = Self("com.claude-touchbar-companion.usage.7d")
     static func companionAction(_ index: Int) -> Self {
         Self("com.claude-touchbar-companion.action.\(index)")
     }
@@ -14,14 +17,24 @@ extension NSTouchBarItem.Identifier {
 /// The bar pops up by itself when a request needs an answer and steps aside again
 /// afterwards, so the regular Touch Bar (Esc, etc.) is back the rest of the time.
 /// The Control Strip "CC" button opens it manually.
+///
+/// Usage follows three tiers: the Control Strip always shows the tighter window as a
+/// segmented battery; the manually opened bar shows both windows; a permission request
+/// only gets a low-battery badge when the 5h window is almost empty.
 final class TouchBarController: NSObject, NSTouchBarDelegate {
     static let maxActions = 3
 
     var onTap: ((_ index: Int, _ requestId: String?) -> Void)?
+    var onTrayTap: (() -> Void)?
 
     private let touchBar = NSTouchBar()
     private let contextButton = NSButton(title: "", target: nil, action: nil)
     private let actionButtons: [NSButton]
+    private let trayButton = NSButton(title: "CC", target: nil, action: nil)
+    private let fiveHourButton = NSButton(title: "", target: nil, action: nil)
+    private let sevenDayButton = NSButton(title: "", target: nil, action: nil)
+    private let badgeButton = NSButton(title: "", target: nil, action: nil)
+    private lazy var contextMaxWidth = contextButton.widthAnchor.constraint(lessThanOrEqualToConstant: 400)
     private var renderedRequestId: String?
     private var autoPresented = false
 
@@ -39,7 +52,13 @@ final class TouchBarController: NSObject, NSTouchBarDelegate {
         contextButton.imagePosition = .imageLeading
         contextButton.bezelColor = .white
         contextButton.cell?.lineBreakMode = .byTruncatingTail
-        contextButton.widthAnchor.constraint(lessThanOrEqualToConstant: 400).isActive = true
+        contextMaxWidth.isActive = true
+        for button in [trayButton, fiveHourButton, sevenDayButton] {
+            button.imagePosition = .imageOnly
+        }
+        badgeButton.bezelColor = UsageRenderer.red
+        badgeButton.imagePosition = .imageLeading
+        badgeButton.image = NSImage(systemSymbolName: "battery.0", accessibilityDescription: "Low 5h usage left")
         for button in actionButtons {
             button.target = self
             button.action = #selector(actionTapped(_:))
@@ -51,12 +70,15 @@ final class TouchBarController: NSObject, NSTouchBarDelegate {
 
     func install() {
         let tray = NSCustomTouchBarItem(identifier: .companionTray)
-        tray.view = NSButton(title: "CC", target: self, action: #selector(trayTapped))
+        trayButton.target = self
+        trayButton.action = #selector(trayTapped)
+        tray.view = trayButton
         PrivateTouchBar.addToControlStrip(tray)
     }
 
-    func render(_ state: CompanionState?) {
+    func render(_ state: CompanionState?, usage: UsageSummary?) {
         let actions = Array((state?.actions ?? []).prefix(Self.maxActions))
+        let usageItems = renderUsage(usage, requestPending: !actions.isEmpty)
 
         contextButton.attributedTitle = NSAttributedString(
             string: state?.context ?? "CC Ready",
@@ -66,8 +88,12 @@ final class TouchBarController: NSObject, NSTouchBarDelegate {
             button.title = action.label
             button.bezelColor = Self.color(forActionId: action.id)
         }
+        // Both usage batteries need the room: shrink the context pill to its logo.
+        let logoOnly = actions.isEmpty && !usageItems.isEmpty && contextButton.image != nil
+        contextButton.imagePosition = logoOnly ? .imageOnly : .imageLeading
+        contextMaxWidth.constant = actions.isEmpty && !usageItems.isEmpty ? 180 : 400
         touchBar.defaultItemIdentifiers =
-            [.companionContext] + actions.indices.map { .companionAction($0) }
+            [.companionContext] + usageItems + actions.indices.map { .companionAction($0) }
 
         let previousRequestId = renderedRequestId
         renderedRequestId = state?.requestId
@@ -81,6 +107,41 @@ final class TouchBarController: NSObject, NSTouchBarDelegate {
             PrivateTouchBar.minimize(touchBar)
             autoPresented = false
         }
+    }
+
+    /// Updates the Control Strip and returns the usage items to show in the bar.
+    private func renderUsage(_ usage: UsageSummary?, requestPending: Bool) -> [NSTouchBarItem.Identifier] {
+        guard let usage, let binding = usage.binding else {
+            trayButton.image = nil
+            trayButton.title = "CC"
+            trayButton.imagePosition = .noImage
+            return []
+        }
+
+        trayButton.title = ""
+        trayButton.imagePosition = .imageOnly
+        trayButton.image = UsageRenderer.compactImage(
+            binding, stale: usage.isStale, charging: !usage.isStale && UsageRenderer.refillsSoon(binding))
+
+        if requestPending {
+            guard let fiveHour = usage.fiveHour, fiveHour.severity == .critical, !usage.isStale else { return [] }
+            badgeButton.title = "\(UsageRenderer.remaining(fiveHour))%"
+            return [.companionUsageBadge]
+        }
+
+        var items: [NSTouchBarItem.Identifier] = []
+        for (window, button, identifier) in [
+            (usage.fiveHour, fiveHourButton, NSTouchBarItem.Identifier.companionUsageFiveHour),
+            (usage.sevenDay, sevenDayButton, .companionUsageSevenDay),
+        ] {
+            guard let window else { continue }
+            button.image = UsageRenderer.image(
+                window, batteryWidth: 130, number: "\(UsageRenderer.remaining(window))%",
+                trailing: UsageRenderer.resetText(window), stale: usage.isStale,
+                charging: !usage.isStale && UsageRenderer.refillsSoon(window))
+            items.append(identifier)
+        }
+        return items
     }
 
     /// Same colors as the BTT setup, keyed by meaning instead of slot position,
@@ -99,6 +160,7 @@ final class TouchBarController: NSObject, NSTouchBarDelegate {
     }
 
     @objc private func trayTapped() {
+        onTrayTap?()
         autoPresented = false
         PrivateTouchBar.present(touchBar, trayIdentifier: .companionTray)
     }
@@ -111,8 +173,14 @@ final class TouchBarController: NSObject, NSTouchBarDelegate {
         _ touchBar: NSTouchBar, makeItemForIdentifier identifier: NSTouchBarItem.Identifier
     ) -> NSTouchBarItem? {
         let item = NSCustomTouchBarItem(identifier: identifier)
-        if identifier == .companionContext {
-            item.view = contextButton
+        let fixedViews: [NSTouchBarItem.Identifier: NSView] = [
+            .companionContext: contextButton,
+            .companionUsageBadge: badgeButton,
+            .companionUsageFiveHour: fiveHourButton,
+            .companionUsageSevenDay: sevenDayButton,
+        ]
+        if let view = fixedViews[identifier] {
+            item.view = view
             return item
         }
         guard let button = actionButtons.first(where: { .companionAction($0.tag) == identifier })
