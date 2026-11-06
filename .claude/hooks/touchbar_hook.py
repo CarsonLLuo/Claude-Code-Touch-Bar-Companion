@@ -562,6 +562,17 @@ def state_is_ours(state_path, request_id):
         return True
 
 
+def awaiting_answer(state_path):
+    """True while state.json shows buttons that are still waiting for a tap."""
+    try:
+        with open(state_path, "r", encoding="utf-8") as handle:
+            state = json.load(handle)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return False
+    expires_at = int(state.get("expires_at") or 0)
+    return bool(state.get("actions")) and (not expires_at or expires_at > int(time.time() * 1000))
+
+
 def wait_for_response(base_dir, state_path, state, request_id, wait_ms, stop_waiting=None):
     """Polls for responses/<request_id>.json written by the Touch Bar app.
 
@@ -789,8 +800,13 @@ def main():
         "raw_event_path": last_event_path,
     }
 
-    # A turn that ends with a question leaves the Touch Bar to the question hook.
-    if not (is_stop and question_owns_stop(base_dir, event.get("session_id"))):
+    # A turn that ends with a question leaves the Touch Bar to the question hook. A Notification
+    # ("Claude needs your permission") is not progress: it must not replace a request that is
+    # still waiting, or that request's hook would take it as answered elsewhere and give up.
+    keep_current = (is_stop and question_owns_stop(base_dir, event.get("session_id"))) or (
+        event.get("hook_event_name") == "Notification" and awaiting_answer(state_path)
+    )
+    if not keep_current:
         atomic_write(
             state_path,
             json.dumps(state, ensure_ascii=False, indent=2, sort_keys=True) + "\n",

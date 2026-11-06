@@ -107,7 +107,7 @@ BTT 试用已到期，目前没有可用的 Touch Bar 渲染层。方向调整�
 - 依赖桌面 app 内部工具，app 更新可能失效；终端里不适用
 - [x] 实测：asyncRewake 送来的回答被标注为"不是用户输入"，不能作为提交 / 推送等对外操作的同意。改为给 `git commit`、`git push`、`gh pr` 加 `ask` 规则，由权限请求（同样在 Touch Bar 上）把关：点一次答案 + 一次权限 `Yes`
 - [x] 一次点击提交推送：不再先问"要不要提交推送"，直接执行合并的 `git commit … && git push`，由 `ask` 规则触发的权限请求作为唯一的提问；Touch Bar 上显示 `Commit & push` / `Commit` / `Push`
-- [x] 修复：hook 等待时每 5 秒刷新 state，会把"已在屏幕上处理"的新状态覆盖回旧请求，导致 Touch Bar 残留按钮；现在发现 state 被新事件接管就立即停止等待、不再回写
+- [x] 修复：hook 等待时每 5 秒刷新 state，会把"已在屏幕上处理"的新状态覆盖回旧请求，导致 Touch Bar 残留按钮；现在发现 state 被新事件接管就立即停止等待、不再回写；但 "Claude needs your permission" 这类 Notification 不算新进展，不会覆盖仍在等待的请求（否则请求约 6 秒就会消失）
 - [ ] 后续：同样的方式支持官方的 `AskUserQuestion`（PreToolUse + `updatedInput.answers`，终端和桌面都能用）
 
 ### 提前完成（原属阶段 5）
