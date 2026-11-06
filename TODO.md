@@ -68,6 +68,27 @@ MVP 核心链路已跑通。`PermissionRequest` hook 端到端可用，Touch Bar
   - 实测：Control Strip 每格约 50pt，横排会被整体缩小；改为两行（上 `5h 47`，下细分段电池）
   - 实测：按需层 context 胶囊 + 两条 170pt 电池放不下，7d 被系统隐藏；改为 context 只显示 logo、电池 130pt
   - 窗口的第一个快照如果不在第一格，只作为基线，不把之前的用量记到当前格
+
+### 提前完成（原属阶段 5，2026-11-06）
+
+- [x] 后台常驻 + 开机自启：`scripts/install-launch-agent.sh` 安装 LaunchAgent（登录启动、崩溃重启），二进制放在 `~/Library/Application Support/`；app 单实例锁；退出时移除 Control Strip 项，避免进程被杀后留下点不动的旧按钮
+
+### 新增：Claude 桌面 app 的"下一步"提问上 Touch Bar（2026-11-06 实测通过）
+
+- [x] PreToolUse 记下 `mcp__ccd_turn__wrap_up` 的问题和按钮，Touch Bar 显示 `[问题] [选项] [选项] [On screen]`
+- [x] `questions.jsonl` 记录每个问题的开始 / 结束
+- [x] 实测发现：同步 Stop hook 等待期间屏幕上的提问框是隐藏的（桌面 app 要等同步 Stop hook 全部结束才显示）
+- [x] 改为后台 `asyncRewake` Stop hook：回合立即结束，屏幕和 Touch Bar 同时显示提问；点 Touch Bar → 退出码 2 唤醒 Claude；在屏幕上回答 → 新回合的 `UserPromptSubmit` 撤掉 Touch Bar 上的问题；最多挂 5 分钟；Touch Bar app 没运行时跳过（pid 记在 `frontmost.json`）
+- 依赖桌面 app 内部工具，app 更新可能失效；终端里不适用
+- [x] 实测：asyncRewake 送来的回答被标注为"不是用户输入"，不能作为提交 / 推送等对外操作的同意。改为给 `git commit`、`git push`、`gh pr` 加 `ask` 规则，由权限请求（同样在 Touch Bar 上）把关：点一次答案 + 一次权限 `Yes`
+- [x] 一次点击提交推送：不再先问"要不要提交推送"，直接执行合并的 `git commit … && git push`，由 `ask` 规则触发的权限请求作为唯一的提问；Touch Bar 上显示 `Commit & push` / `Commit` / `Push`。实测：点 `Yes` 一次完成提交推送；点 `No` 整条命令被拦下，只留下已暂存的文件
+- [x] 修复：hook 等待时每 5 秒刷新 state，会把"已在屏幕上处理"的新状态覆盖回旧请求，导致 Touch Bar 残留按钮；现在发现 state 被新事件接管就立即停止等待、不再回写；但 "Claude needs your permission" 这类 Notification 不算新进展，不会覆盖仍在等待的请求（否则请求约 6 秒就会消失）
+- [ ] 提交推送的权限请求在 Touch Bar 上显示成提问框样式（底层仍是权限请求）：`Commit & push? <提交标题>` + `提交并推送`（蓝）/ `先不提交` / `On screen`；只单独推送时为 `Push?` / `推送`；其他权限请求保持 `Yes / No / Review`。屏幕上的权限框是桌面 app 的标准样式，改不了
+- 已知：在 Touch Bar 上回答"下一步"提问后，屏幕上的提问框要过几秒（Claude 被唤醒、新回合开始）才消失，桌面 app 的行为，无法从 hook 关闭
+- [ ] 后续：同样的方式支持官方的 `AskUserQuestion`（PreToolUse + `updatedInput.answers`，终端和桌面都能用）
+
+### 阶段 2（续）：卡通形象
+
 - [ ] 卡通形象：Touch Bar 上的动画小角色，跟着 Claude Code 状态动
   - 状态映射（基于 hook 已有事件）：空闲 → 睡觉 / 眨眼；`PreToolUse` → 原地小跑；`PermissionRequest` → 跳起来挥手（替代 context 前的 logo）；`Stop` → 转圈庆祝；`PostToolUseFailure` → 缩一下
   - 位置：平时在 Control Strip 原地动，不占主区域、不挡 Esc；弹出权限请求时出现在 companion bar 里，可以走几步
@@ -97,24 +118,6 @@ MVP 核心链路已跑通。`PermissionRequest` hook 端到端可用，Touch Bar
 - [ ] GitHub Releases + Homebrew cask
 - [ ] LICENSE、英文 README
 - [ ] 签名与公证（需 Apple Developer 账号；否则文档说明 `xattr -cr`）
-
-### 新增：Claude 桌面 app 的"下一步"提问上 Touch Bar（2026-11-06 实测通过）
-
-- [x] PreToolUse 记下 `mcp__ccd_turn__wrap_up` 的问题和按钮，Touch Bar 显示 `[问题] [选项] [选项] [On screen]`
-- [x] `questions.jsonl` 记录每个问题的开始 / 结束
-- [x] 实测发现：同步 Stop hook 等待期间屏幕上的提问框是隐藏的（桌面 app 要等同步 Stop hook 全部结束才显示）
-- [x] 改为后台 `asyncRewake` Stop hook：回合立即结束，屏幕和 Touch Bar 同时显示提问；点 Touch Bar → 退出码 2 唤醒 Claude；在屏幕上回答 → 新回合的 `UserPromptSubmit` 撤掉 Touch Bar 上的问题；最多挂 5 分钟；Touch Bar app 没运行时跳过（pid 记在 `frontmost.json`）
-- 依赖桌面 app 内部工具，app 更新可能失效；终端里不适用
-- [x] 实测：asyncRewake 送来的回答被标注为"不是用户输入"，不能作为提交 / 推送等对外操作的同意。改为给 `git commit`、`git push`、`gh pr` 加 `ask` 规则，由权限请求（同样在 Touch Bar 上）把关：点一次答案 + 一次权限 `Yes`
-- [x] 一次点击提交推送：不再先问"要不要提交推送"，直接执行合并的 `git commit … && git push`，由 `ask` 规则触发的权限请求作为唯一的提问；Touch Bar 上显示 `Commit & push` / `Commit` / `Push`。实测：点 `Yes` 一次完成提交推送；点 `No` 整条命令被拦下，只留下已暂存的文件
-- [x] 修复：hook 等待时每 5 秒刷新 state，会把"已在屏幕上处理"的新状态覆盖回旧请求，导致 Touch Bar 残留按钮；现在发现 state 被新事件接管就立即停止等待、不再回写；但 "Claude needs your permission" 这类 Notification 不算新进展，不会覆盖仍在等待的请求（否则请求约 6 秒就会消失）
-- [ ] 提交推送的权限请求在 Touch Bar 上显示成提问框样式（底层仍是权限请求）：`Commit & push? <提交标题>` + `提交并推送`（蓝）/ `先不提交` / `On screen`；只单独推送时为 `Push?` / `推送`；其他权限请求保持 `Yes / No / Review`。屏幕上的权限框是桌面 app 的标准样式，改不了
-- 已知：在 Touch Bar 上回答"下一步"提问后，屏幕上的提问框要过几秒（Claude 被唤醒、新回合开始）才消失，桌面 app 的行为，无法从 hook 关闭
-- [ ] 后续：同样的方式支持官方的 `AskUserQuestion`（PreToolUse + `updatedInput.answers`，终端和桌面都能用）
-
-### 提前完成（原属阶段 5）
-
-- [x] 后台常驻 + 开机自启：`scripts/install-launch-agent.sh` 安装 LaunchAgent（登录启动、崩溃重启），二进制放在 `~/Library/Application Support/`；app 单实例锁；退出时移除 Control Strip 项，避免进程被杀后留下点不动的旧按钮
 
 ### 后续候选
 
