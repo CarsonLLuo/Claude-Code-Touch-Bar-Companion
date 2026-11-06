@@ -106,6 +106,7 @@ BTT 试用已到期，目前没有可用的 Touch Bar 渲染层。方向调整�
 - [x] 改为后台 `asyncRewake` Stop hook：回合立即结束，屏幕和 Touch Bar 同时显示提问；点 Touch Bar → 退出码 2 唤醒 Claude；在屏幕上回答 → 新回合的 `UserPromptSubmit` 撤掉 Touch Bar 上的问题；最多挂 5 分钟；Touch Bar app 没运行时跳过（pid 记在 `frontmost.json`）
 - 依赖桌面 app 内部工具，app 更新可能失效；终端里不适用
 - [x] 实测：asyncRewake 送来的回答被标注为"不是用户输入"，不能作为提交 / 推送等对外操作的同意。改为给 `git commit`、`git push`、`gh pr` 加 `ask` 规则，由权限请求（同样在 Touch Bar 上）把关：点一次答案 + 一次权限 `Yes`
+- [x] 一次点击提交推送：不再先问"要不要提交推送"，直接执行合并的 `git commit … && git push`，由 `ask` 规则触发的权限请求作为唯一的提问；Touch Bar 上显示 `Commit & push` / `Commit` / `Push`
 - [x] 修复：hook 等待时每 5 秒刷新 state，会把"已在屏幕上处理"的新状态覆盖回旧请求，导致 Touch Bar 残留按钮；现在发现 state 被新事件接管就立即停止等待、不再回写
 - [ ] 后续：同样的方式支持官方的 `AskUserQuestion`（PreToolUse + `updatedInput.answers`，终端和桌面都能用）
 

@@ -277,7 +277,29 @@ def bash_summary(event):
     return shorten_middle(command, 22)
 
 
+def git_action_summary(event):
+    """`Commit & push`, `Commit` or `Push` when the command (possibly chained with &&) runs those."""
+    parts = bash_parts(event)
+    subcommands = set()
+    for index, part in enumerate(parts):
+        if os.path.basename(part) == "git":
+            subcommand = first_non_option(parts[index + 1 :])
+            if subcommand:
+                subcommands.add(subcommand)
+    if {"commit", "push"} <= subcommands:
+        return "Commit & push"
+    if "commit" in subcommands:
+        return "Commit"
+    if "push" in subcommands:
+        return "Push"
+    return None
+
+
 def bash_context_text(event, prefix):
+    git_summary = git_action_summary(event)
+    if git_summary:
+        return git_summary
+
     rm_info = rm_command_info(event)
     if rm_info and rm_info["targets"]:
         cwd = event.get("cwd")

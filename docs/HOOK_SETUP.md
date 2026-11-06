@@ -245,10 +245,14 @@ rules so they always raise a permission request, which also shows on the Touch B
 }
 ```
 
-*Commit and push?* then takes two taps, both on the Touch Bar: the answer, and `Yes` on the
-permission request for the combined `git commit … && git push`. `ask` rules apply even when
-a broader `allow` rule (such as `"Bash"`) or bypass-permissions mode would let the command
-run.
+`ask` rules apply even when a broader `allow` rule (such as `"Bash"`) or bypass-permissions
+mode would let the command run.
+
+For one-tap commits, skip the question altogether: let Claude run the combined
+`git commit … && git push` directly. The permission request it raises is the only question,
+shown on screen and on the Touch Bar as `Commit & push` (or `Commit` / `Push`). `Yes` commits
+and pushes; `No` leaves everything uncommitted. Answering on screen also takes a single
+click this way.
 
 `questions.jsonl` logs when each question was asked and how it ended (`choice_N`, `screen`,
 `answered elsewhere`, `timeout`, or `skipped` with a reason); a question without an
