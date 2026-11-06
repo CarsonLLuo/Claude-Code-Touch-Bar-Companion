@@ -2,13 +2,13 @@
 
 ## 更新日期
 
-2026-11-05
+2026-11-06
 
 ## 当前状态
 
 MVP 核心链路已跑通。`PermissionRequest` hook 端到端可用，Touch Bar 显示权限摘要、风险分级按钮，用户点击后通过结构化 hook decision 回传 Claude Code。
 
-BTT 试用已到期，目前没有可用的 Touch Bar 渲染层。方向调整为：开源的原生 Swift 菜单栏 app，替代 BTT 并提供 GUI 自定义按钮。
+渲染层已从 BTT 换成原生 Swift 菜单栏 app，由 LaunchAgent 后台常驻、开机自启。阶段 2 的用量显示已完成；另外新增了 Claude 桌面 app"下一步"提问上 Touch Bar，以及"一次点击提交推送"（由权限请求作为唯一的确认）。下一步是卡通小角色，以及提交推送权限请求的提问框样式（待决定）。
 
 ## MVP 完成标准
 
@@ -106,8 +106,10 @@ BTT 试用已到期，目前没有可用的 Touch Bar 渲染层。方向调整�
 - [x] 改为后台 `asyncRewake` Stop hook：回合立即结束，屏幕和 Touch Bar 同时显示提问；点 Touch Bar → 退出码 2 唤醒 Claude；在屏幕上回答 → 新回合的 `UserPromptSubmit` 撤掉 Touch Bar 上的问题；最多挂 5 分钟；Touch Bar app 没运行时跳过（pid 记在 `frontmost.json`）
 - 依赖桌面 app 内部工具，app 更新可能失效；终端里不适用
 - [x] 实测：asyncRewake 送来的回答被标注为"不是用户输入"，不能作为提交 / 推送等对外操作的同意。改为给 `git commit`、`git push`、`gh pr` 加 `ask` 规则，由权限请求（同样在 Touch Bar 上）把关：点一次答案 + 一次权限 `Yes`
-- [x] 一次点击提交推送：不再先问"要不要提交推送"，直接执行合并的 `git commit … && git push`，由 `ask` 规则触发的权限请求作为唯一的提问；Touch Bar 上显示 `Commit & push` / `Commit` / `Push`
+- [x] 一次点击提交推送：不再先问"要不要提交推送"，直接执行合并的 `git commit … && git push`，由 `ask` 规则触发的权限请求作为唯一的提问；Touch Bar 上显示 `Commit & push` / `Commit` / `Push`。实测：点 `Yes` 一次完成提交推送；点 `No` 整条命令被拦下，只留下已暂存的文件
 - [x] 修复：hook 等待时每 5 秒刷新 state，会把"已在屏幕上处理"的新状态覆盖回旧请求，导致 Touch Bar 残留按钮；现在发现 state 被新事件接管就立即停止等待、不再回写；但 "Claude needs your permission" 这类 Notification 不算新进展，不会覆盖仍在等待的请求（否则请求约 6 秒就会消失）
+- [ ] 提交推送的权限请求在 Touch Bar 上显示成提问框样式（底层仍是权限请求）：`Commit & push? <提交标题>` + `提交并推送`（蓝）/ `先不提交` / `On screen`；只单独推送时为 `Push?` / `推送`；其他权限请求保持 `Yes / No / Review`。屏幕上的权限框是桌面 app 的标准样式，改不了
+- 已知：在 Touch Bar 上回答"下一步"提问后，屏幕上的提问框要过几秒（Claude 被唤醒、新回合开始）才消失，桌面 app 的行为，无法从 hook 关闭
 - [ ] 后续：同样的方式支持官方的 `AskUserQuestion`（PreToolUse + `updatedInput.answers`，终端和桌面都能用）
 
 ### 提前完成（原属阶段 5）
@@ -122,6 +124,7 @@ BTT 试用已到期，目前没有可用的 Touch Bar 渲染层。方向调整�
 
 - 阶段 3 自定义范围：外观（文案 / 颜色 / 顺序）、策略（每个风险等级显示哪些按钮）、空闲时的额外按钮，先做哪几类
 - 阶段 2：小角色只跟着状态动，还是也要纯装饰动画
+- 提交推送的权限请求要不要改成提问框样式（见"下一步"提问一节），按钮文案用中文还是英文
 - 是否安装 Xcode（目前只有 Command Line Tools + Swift 6.0.3）
 
 ## 风险
