@@ -13,7 +13,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let accountUsageMenuItem = NSMenuItem(
         title: "Fetch Usage from Claude Account", action: #selector(toggleAccountUsage), keyEquivalent: "")
 
+    private var signalSources: [DispatchSourceSignal] = []
+
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // launchd and `pkill` stop the app with SIGTERM, which skips applicationWillTerminate.
+        for signalNumber in [SIGTERM, SIGINT] {
+            signal(signalNumber, SIG_IGN)
+            let source = DispatchSource.makeSignalSource(signal: signalNumber, queue: .main)
+            source.setEventHandler { NSApp.terminate(nil) }
+            source.resume()
+            signalSources.append(source)
+        }
         setUpStatusItem()
 
         touchBar.onTap = { [weak self] index, requestId in
@@ -46,6 +56,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(withTitle: "Quit Touch Bar Companion", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         item.menu = menu
         statusItem = item
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        touchBar.uninstall()
     }
 
     @objc private func toggleAccountUsage() {
@@ -83,6 +97,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
     }
+}
+
+// Only one copy may own the Touch Bar. A second launch (say, a manual run while launchd
+// keeps one alive) exits quietly. The lock is released automatically when the process ends.
+let lockDirectory = CompanionStore.baseDirectory()
+try? FileManager.default.createDirectory(at: lockDirectory, withIntermediateDirectories: true)
+let lockDescriptor = open(lockDirectory.appendingPathComponent("app.lock").path, O_CREAT | O_RDWR, 0o644)
+if lockDescriptor < 0 || flock(lockDescriptor, LOCK_EX | LOCK_NB) != 0 {
+    FileHandle.standardError.write(Data("TouchBarCompanion is already running.\n".utf8))
+    exit(0)
 }
 
 let app = NSApplication.shared

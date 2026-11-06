@@ -98,6 +98,10 @@ BTT 试用已到期，目前没有可用的 Touch Bar 渲染层。方向调整�
 - [ ] LICENSE、英文 README
 - [ ] 签名与公证（需 Apple Developer 账号；否则文档说明 `xattr -cr`）
 
+### 提前完成（原属阶段 5）
+
+- [x] 后台常驻 + 开机自启：`scripts/install-launch-agent.sh` 安装 LaunchAgent（登录启动、崩溃重启），二进制放在 `~/Library/Application Support/`；app 单实例锁；退出时移除 Control Strip 项，避免进程被杀后留下点不动的旧按钮
+
 ### 后续候选
 
 - [ ] 多 session 状态隔离

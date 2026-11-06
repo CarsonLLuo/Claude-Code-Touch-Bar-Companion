@@ -21,6 +21,24 @@ swift build
 ```
 
 The app runs in the menu bar (`CC`) with no Dock icon. Quit it from that menu.
+Only one copy runs at a time; a second launch exits with `TouchBarCompanion is already running.`
+
+## Run in the Background (Recommended)
+
+Started from a terminal or a Claude session, the app stops when that session ends, which
+also leaves gaps in the usage battery. Install it as a LaunchAgent instead:
+
+```sh
+scripts/install-launch-agent.sh            # build, install and start; rerun after code changes
+scripts/install-launch-agent.sh uninstall  # stop and remove
+```
+
+It builds a release binary, copies it to `~/Library/Application Support/ClaudeTouchBarCompanion/`
+(launchd jobs can be blocked from reading Desktop / Documents), and loads
+`~/Library/LaunchAgents/com.claude-touchbar-companion.plist`. The app then starts at login
+and is restarted if it crashes; quitting it from the `CC` menu keeps it quit until the next
+login. Output goes to `~/.claude-touchbar/app.log`. On exit the app removes its Control Strip
+item, so a stopped process does not leave a dead `CC` button behind.
 
 Optional: put a square PNG at `~/.claude-touchbar/icon.png` to show it before the
 context text (read at launch). The logo is not bundled in this repo.

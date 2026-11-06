@@ -20,6 +20,11 @@ enum PrivateTouchBar {
         setControlStripPresence?(item.identifier.rawValue as NSString, true)
     }
 
+    static func removeFromControlStrip(_ item: NSTouchBarItem) {
+        setControlStripPresence?(item.identifier.rawValue as NSString, false)
+        callClassMethod(on: NSTouchBarItem.self, "removeSystemTrayItem:", item)
+    }
+
     static func present(_ touchBar: NSTouchBar, trayIdentifier: NSTouchBarItem.Identifier) {
         callClassMethod(
             on: NSTouchBar.self,

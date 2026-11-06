@@ -31,6 +31,7 @@ final class TouchBarController: NSObject, NSTouchBarDelegate {
     private let contextButton = NSButton(title: "", target: nil, action: nil)
     private let actionButtons: [NSButton]
     private let trayButton = NSButton(title: "CC", target: nil, action: nil)
+    private var trayItem: NSCustomTouchBarItem?
     private let fiveHourButton = NSButton(title: "", target: nil, action: nil)
     private let sevenDayButton = NSButton(title: "", target: nil, action: nil)
     private let badgeButton = NSButton(title: "", target: nil, action: nil)
@@ -74,6 +75,14 @@ final class TouchBarController: NSObject, NSTouchBarDelegate {
         trayButton.action = #selector(trayTapped)
         tray.view = trayButton
         PrivateTouchBar.addToControlStrip(tray)
+        trayItem = tray
+    }
+
+    /// Without this, a killed process can leave a dead `CC` item behind in the Control Strip.
+    func uninstall() {
+        PrivateTouchBar.minimize(touchBar)
+        if let trayItem { PrivateTouchBar.removeFromControlStrip(trayItem) }
+        trayItem = nil
     }
 
     func render(_ state: CompanionState?, usage: UsageSummary?) {

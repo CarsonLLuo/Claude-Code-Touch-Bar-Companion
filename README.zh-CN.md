@@ -146,7 +146,7 @@ companion 只能看到进入 Claude Code `PermissionRequest` hook 的请求，�
    .build/debug/TouchBarCompanion
    ```
 
-   它以 `CC` 的形式待在菜单栏，没有 Dock 图标。
+   它以 `CC` 的形式待在菜单栏，没有 Dock 图标。想让它在后台常驻、开机自动启动，改用 `scripts/install-launch-agent.sh`（见 [docs/APP_SETUP.md](docs/APP_SETUP.md#run-in-the-background-recommended)）。
 3. 触发一次 Claude Code 权限请求，在 Touch Bar 上点对应的按钮。
 4. 可选：在菜单栏 `CC` 的菜单里打开 *Fetch Usage from Claude Account*，查看套餐用量。
 
@@ -167,7 +167,7 @@ find ~/.claude-touchbar/responses -maxdepth 1 -type f     # 回复文件
 - [ ] **阶段 2：用量和小角色**：分段电池显示套餐用量（已完成）；跟着 Claude Code 状态动的动画小角色
 - [ ] **阶段 3：可配置**：用配置文件定义 Touch Bar 按钮，安全底线写死在代码里
 - [ ] **阶段 4：设置窗口**：SwiftUI 按钮编辑器，带 Touch Bar 实时预览
-- [ ] **阶段 5：开源分发**：hook 改写为 Swift（去掉 Python 依赖）、一键安装 hook、开机自启、Homebrew cask
+- [ ] **阶段 5：开源分发**：hook 改写为 Swift（去掉 Python 依赖）、一键安装 hook、Homebrew cask（开机自启已经可以通过 LaunchAgent 脚本实现）
 
 详见 [TODO.md](TODO.md)。
 
@@ -192,6 +192,7 @@ app/                             # 原生 Swift Touch Bar app（SwiftPM）
 docs/APP_SETUP.md                # Swift app 配置说明
 docs/HOOK_SETUP.md               # hook 行为和手动测试
 docs/BTT_SETUP.md                # 旧方案：BetterTouchTool 配置
+scripts/install-launch-agent.sh  # 让 app 在后台常驻、开机自启
 scripts/                         # 旧方案：BetterTouchTool 脚本和 iTerm2 启动脚本
 TODO.md                          # 路线图和 checklist
 ```

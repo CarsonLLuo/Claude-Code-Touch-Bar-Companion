@@ -146,7 +146,7 @@ Requires a MacBook Pro with a physical Touch Bar, macOS 12 or later, Python 3 an
    .build/debug/TouchBarCompanion
    ```
 
-   It lives in the menu bar as `CC`, with no Dock icon.
+   It lives in the menu bar as `CC`, with no Dock icon. To keep it running in the background and start it at login, use `scripts/install-launch-agent.sh` instead (see [docs/APP_SETUP.md](docs/APP_SETUP.md#run-in-the-background-recommended)).
 3. Trigger a Claude Code permission request and tap an action on the Touch Bar.
 4. Optional: turn on *Fetch Usage from Claude Account* in the `CC` menu to see your plan usage.
 
@@ -167,7 +167,7 @@ find ~/.claude-touchbar/responses -maxdepth 1 -type f     # response files
 - [ ] **Phase 2: Usage and mascot**: plan usage as segmented batteries (done); an animated character that follows Claude Code's state
 - [ ] **Phase 3: Configurable**: Touch Bar buttons defined in a config file, with the safety rules enforced in code
 - [ ] **Phase 4: Settings window**: SwiftUI editor for buttons with a live Touch Bar preview
-- [ ] **Phase 5: Open-source distribution**: hook rewritten in Swift (no Python dependency), one-click hook install, launch at login, Homebrew cask
+- [ ] **Phase 5: Open-source distribution**: hook rewritten in Swift (no Python dependency), one-click hook install, Homebrew cask (launch at login is already available via a LaunchAgent script)
 
 Details are in [TODO.md](TODO.md).
 
@@ -192,6 +192,7 @@ app/                             # native Swift Touch Bar app (SwiftPM)
 docs/APP_SETUP.md                # Swift app setup
 docs/HOOK_SETUP.md               # hook behavior and manual tests
 docs/BTT_SETUP.md                # legacy: BetterTouchTool setup
+scripts/install-launch-agent.sh  # run the app in the background, start at login
 scripts/                         # legacy: BetterTouchTool scripts and iTerm2 launcher
 TODO.md                          # roadmap and checklist
 ```
