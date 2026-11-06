@@ -56,7 +56,10 @@ Each one is small, but each one pulls you back to the terminal and out of whatev
 | `Write`, `Edit`, `MultiEdit` with an edit suggestion | `Create permission-edit-test.md` | `Yes / All edits / No` |
 | Low or medium risk request | `Delete touchbar-test.md`, `Run npm test` | `Yes / No / Review` |
 | High-risk delete or shell command | `Delete tmp` | `Review on screen / No` |
+| Claude desktop's next-step question (end of turn) | `Commit and push this change?` | `提交并推送 / 先不提交 / On screen` |
 | Nothing pending | `CC Ready` | none |
+
+A choice on a next-step question is passed back to Claude as feedback and the turn continues; the Touch Bar waits 20 seconds, and a click on the screen meanwhile is queued until then, so tap `On screen` to answer there right away. See [docs/HOOK_SETUP.md](docs/HOOK_SETUP.md#next-step-questions-claude-desktop).
 
 The context item is a white, display-only pill, optionally prefixed by an icon from `~/.claude-touchbar/icon.png`. Actions are colored by meaning: `Yes` green, session-wide allow blue, `No` red, review actions gray.
 

@@ -98,6 +98,15 @@ BTT 试用已到期，目前没有可用的 Touch Bar 渲染层。方向调整�
 - [ ] LICENSE、英文 README
 - [ ] 签名与公证（需 Apple Developer 账号；否则文档说明 `xattr -cr`）
 
+### 新增：Claude 桌面 app 的"下一步"提问上 Touch Bar（2026-11-06 实测通过）
+
+- [x] PreToolUse 记下 `mcp__ccd_turn__wrap_up` 的问题和按钮，Stop 时显示 `[问题] [选项] [选项] [On screen]`，等 20 秒
+- [x] 点选项用 Stop `additionalContext` 回传（`decision: "block"` 会显示成 "blocking error"）
+- [x] `questions.jsonl` 记录每个问题的开始 / 结束
+- 已知限制：等待期间在屏幕上点按钮会被排队到 hook 结束，hook 无从察觉；先点 `On screen` 可立即放行
+- 依赖桌面 app 内部工具，app 更新可能失效；终端里不适用
+- [ ] 后续：同样的方式支持官方的 `AskUserQuestion`（PreToolUse + `updatedInput.answers`，终端和桌面都能用）
+
 ### 提前完成（原属阶段 5）
 
 - [x] 后台常驻 + 开机自启：`scripts/install-launch-agent.sh` 安装 LaunchAgent（登录启动、崩溃重启），二进制放在 `~/Library/Application Support/`；app 单实例锁；退出时移除 Control Strip 项，避免进程被杀后留下点不动的旧按钮

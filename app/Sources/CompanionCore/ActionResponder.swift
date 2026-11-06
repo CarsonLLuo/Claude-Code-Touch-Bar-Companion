@@ -3,6 +3,10 @@ import Foundation
 /// Swift port of `scripts/btt_action.py`: turns a Touch Bar tap into a response file
 /// that the hook picks up and returns to Claude Code as a structured decision.
 public enum ActionResponder {
+    /// States whose hook waits for a response file: permission requests, and Claude desktop's
+    /// end-of-turn question.
+    static let respondingKinds: Set<String> = ["PermissionRequest", "NextStepQuestion"]
+
     static let blockedDirectActions: Set<String> = [
         "allow",
         "allow_once",
@@ -34,7 +38,7 @@ public enum ActionResponder {
         }
 
         var responseWritten = false
-        if state.kind == "PermissionRequest", let requestId = state.requestId {
+        if respondingKinds.contains(state.kind), let requestId = state.requestId {
             var response: [String: Any] = [
                 "request_id": requestId,
                 "session_id": state.sessionId,

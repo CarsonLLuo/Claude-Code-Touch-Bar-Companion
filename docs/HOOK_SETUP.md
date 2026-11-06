@@ -187,6 +187,35 @@ The BTT action script writes that response file.
 
 If no response arrives before timeout, the hook exits without a decision and Claude Code falls back to the normal permission dialog.
 
+## Next-Step Questions (Claude Desktop)
+
+Claude desktop ends many turns with a "next step" box: a question plus one or two reply
+buttons (for example *Commit and push?* · `提交并推送` · `先不提交`). The hook mirrors it on
+the Touch Bar:
+
+1. `PreToolUse` of `mcp__ccd_turn__wrap_up` saves the question and the labeled buttons to
+   `pending-question.json`. Nothing waits here. App actions without a label (commit, create
+   PR, ...) are left to the screen.
+2. At `Stop`, if this turn saved a question, the hook shows
+   `[question] [choice 1] [choice 2] [On screen]` and waits up to 20 seconds
+   (`CLAUDE_TOUCHBAR_QUESTION_TIMEOUT_MS`). Turns without a question end immediately.
+3. A tap on a choice is returned as Stop `additionalContext`
+   (`The user chose 「…」 on the Touch Bar, answering your question: …`), so Claude
+   continues the same turn with it. `On screen`, closing the bar or the timeout end the turn
+   normally.
+
+Tested in Claude desktop:
+
+- The box is already on screen while the Touch Bar asks, so either can be used.
+- Returning `decision: "block"` instead shows up as a "Stop hook blocking error"; that is why
+  `additionalContext` is used.
+- Clicking the box on screen while the hook waits is queued until the hook ends: the click is
+  not written to the transcript earlier, so the hook cannot notice it. Tap `On screen` first
+  to answer on screen without the wait.
+
+`questions.jsonl` logs when each question was asked and how it ended; a question without an
+`ended_at` line means the hook was cut off while waiting.
+
 ## Sanitized Logs
 
 `events.jsonl` and `last-event.json` are sanitized by default.

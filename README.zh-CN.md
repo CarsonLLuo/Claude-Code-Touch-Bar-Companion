@@ -56,7 +56,10 @@ agentic coding 里充满了小决策：
 | 带 edit suggestion 的 `Write`、`Edit`、`MultiEdit` | `Create permission-edit-test.md` | `Yes / All edits / No` |
 | 低 / 中风险请求 | `Delete touchbar-test.md`、`Run npm test` | `Yes / No / Review` |
 | 高风险删除或 shell 命令 | `Delete tmp` | `Review on screen / No` |
+| Claude 桌面 app 回合结束时的"下一步"提问 | `Commit and push this change?` | `提交并推送 / 先不提交 / On screen` |
 | 没有待处理的请求 | `CC Ready` | 无 |
+
+在"下一步"提问上点的选项，会作为反馈传回给 Claude，回合接着进行。Touch Bar 会等 20 秒，这期间在屏幕上点按钮会被排到等待结束后才生效，想在屏幕上回答可以先点 `On screen`。详见 [docs/HOOK_SETUP.md](docs/HOOK_SETUP.md#next-step-questions-claude-desktop)。
 
 Context 是白底的只读 item，前面可以显示 `~/.claude-touchbar/icon.png` 里的图标。按钮按含义上色：`Yes` 绿色，本会话授权蓝色，`No` 红色，Review 类灰色。
 

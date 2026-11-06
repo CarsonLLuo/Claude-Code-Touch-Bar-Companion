@@ -159,7 +159,7 @@ final class TouchBarController: NSObject, NSTouchBarDelegate {
         switch id {
         case "allow", "allow_once":
             return NSColor(srgbRed: 22 / 255, green: 163 / 255, blue: 74 / 255, alpha: 1)
-        case "allow_session_edits", "allow_session_read":
+        case "allow_session_edits", "allow_session_read", "choice_0":
             return NSColor(srgbRed: 37 / 255, green: 99 / 255, blue: 235 / 255, alpha: 1)
         case "deny":
             return NSColor(srgbRed: 220 / 255, green: 38 / 255, blue: 38 / 255, alpha: 1)

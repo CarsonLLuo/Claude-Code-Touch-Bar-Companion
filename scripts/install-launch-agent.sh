@@ -20,6 +20,11 @@ DOMAIN="gui/$(id -u)"
 
 stop() {
   launchctl bootout "$DOMAIN/$LABEL" 2>/dev/null || true
+  # bootout returns before the job is fully gone; bootstrapping too early fails with error 5.
+  for _ in $(seq 1 50); do
+    launchctl print "$DOMAIN/$LABEL" >/dev/null 2>&1 || return 0
+    sleep 0.1
+  done
 }
 
 case "${1:-install}" in

@@ -15,6 +15,11 @@ HIGH_RISK_PATTERN = re.compile(
 )
 DEFAULT_EXPIRES_MS = 30000
 DEFAULT_PERMISSION_WAIT_MS = 20000
+DEFAULT_QUESTION_WAIT_MS = 20000
+# Claude desktop's end-of-turn "next step" box (question + reply buttons).
+QUESTION_TOOL = "mcp__ccd_turn__wrap_up"
+QUESTION_MAX_AGE_MS = 15 * 60 * 1000
+MAX_QUESTION_CHOICES = 2
 POLL_INTERVAL_SECONDS = 0.2
 MAX_TARGET_CHARS = 34
 
@@ -41,6 +46,14 @@ def permission_wait_ms():
         return max(0, int(value))
     except ValueError:
         return DEFAULT_PERMISSION_WAIT_MS
+
+
+def question_wait_ms():
+    value = os.environ.get("CLAUDE_TOUCHBAR_QUESTION_TIMEOUT_MS")
+    try:
+        return max(0, int(value)) if value else DEFAULT_QUESTION_WAIT_MS
+    except ValueError:
+        return DEFAULT_QUESTION_WAIT_MS
 
 
 def command_text(event):
@@ -514,8 +527,9 @@ def mark_decided(state_path, state, action_id):
     atomic_write(state_path, json.dumps(updated, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
 
 
-def wait_for_permission_response(base_dir, state_path, state, request_id):
-    deadline = time.time() + permission_wait_ms() / 1000
+def wait_for_response(base_dir, state_path, state, request_id, wait_ms):
+    """Polls for responses/<request_id>.json written by the Touch Bar app. Returns it, or None on timeout."""
+    deadline = time.time() + wait_ms / 1000
     path = response_path(base_dir, request_id)
     last_refresh = time.time()
 
@@ -539,11 +553,102 @@ def wait_for_permission_response(base_dir, state_path, state, request_id):
             time.sleep(POLL_INTERVAL_SECONDS)
             continue
 
-        action_id = response.get("action_id") or ""
-        mark_decided(state_path, state, action_id)
-        return True, decision_for_response(response)
+        return response
 
-    return False, None
+    return None
+
+
+def pending_question_path(base_dir):
+    return os.path.join(base_dir, "pending-question.json")
+
+
+def remember_question(base_dir, event, now_ms):
+    """PreToolUse of the next-step box: keep its question for the Stop hook. Nothing waits here."""
+    tool_input = event.get("tool_input") or {}
+    ask = str(tool_input.get("ask") or "").strip()
+    # Only reply buttons carry a label; app actions (commit, create PR...) are left to the screen.
+    labels = [
+        str(action["label"])
+        for action in tool_input.get("actions") or []
+        if isinstance(action, dict) and action.get("label")
+    ][:MAX_QUESTION_CHOICES]
+
+    path = pending_question_path(base_dir)
+    if not ask or not labels:
+        if os.path.exists(path):
+            os.unlink(path)
+        return
+
+    question = {"session_id": event.get("session_id"), "ask": ask, "labels": labels, "at": now_ms}
+    atomic_write(path, json.dumps(question, ensure_ascii=False, indent=2) + "\n")
+
+
+def ask_pending_question(base_dir, state_path, event, now_ms):
+    """Stop: show the turn's question on the Touch Bar and wait briefly for a tap.
+
+    A tap is relayed to Claude as Stop hook feedback, so the turn continues with the user's
+    choice. "On screen", closing the bar or a timeout ends the turn normally.
+    """
+    path = pending_question_path(base_dir)
+    try:
+        with open(path, "r", encoding="utf-8") as handle:
+            question = json.load(handle)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return None
+    os.unlink(path)
+
+    if question.get("session_id") != event.get("session_id"):
+        return None
+    if now_ms - int(question.get("at") or 0) > QUESTION_MAX_AGE_MS:
+        return None
+
+    ask = question["ask"]
+    request_id = str(uuid.uuid4())
+    actions = [{"id": f"choice_{index}", "label": label} for index, label in enumerate(question["labels"])]
+    actions.append({"id": "screen", "label": "On screen"})
+    state = {
+        "version": 1,
+        "request_id": request_id,
+        "session_id": event.get("session_id") or "unknown",
+        "updated_at": now_ms,
+        "expires_at": now_ms + DEFAULT_EXPIRES_MS,
+        "kind": "NextStepQuestion",
+        "context": ask[:80],
+        "risk": "low",
+        "actions": actions,
+    }
+    atomic_write(state_path, json.dumps(state, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+
+    log_path = os.path.join(base_dir, "questions.jsonl")
+    with open(log_path, "a", encoding="utf-8") as log_file:
+        log_file.write(json.dumps({"request_id": request_id, "asked_at": now_ms, "ask": ask}, ensure_ascii=False) + "\n")
+
+    response = wait_for_response(base_dir, state_path, state, request_id, question_wait_ms())
+    action_id = (response or {}).get("action_id") or ""
+    label = (response or {}).get("action_label") or ""
+
+    # No "ended" line for a request_id means the hook was cut off while waiting.
+    with open(log_path, "a", encoding="utf-8") as log_file:
+        ended = {"request_id": request_id, "ended_at": int(time.time() * 1000), "outcome": action_id or "timeout"}
+        log_file.write(json.dumps(ended) + "\n")
+
+    finished = dict(state)
+    finished["actions"] = []
+    finished["kind"] = "question_answered"
+    finished["expires_at"] = int(time.time() * 1000) + 3000
+    finished["context"] = f"Sent: {label}" if action_id.startswith("choice_") else "Answer on screen"
+    atomic_write(state_path, json.dumps(finished, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+
+    if not action_id.startswith("choice_"):
+        return None
+    # additionalContext continues the turn as plain feedback; decision "block" shows up in
+    # the conversation as a "blocking error", which reads like something went wrong.
+    return {
+        "hookSpecificOutput": {
+            "hookEventName": "Stop",
+            "additionalContext": f"The user chose \u300c{label}\u300d on the Touch Bar, answering your question: {ask}",
+        }
+    }
 
 
 def main():
@@ -581,6 +686,9 @@ def main():
             + "\n"
         )
 
+    if event.get("hook_event_name") == "PreToolUse" and event.get("tool_name") == QUESTION_TOOL:
+        remember_question(base_dir, event, now_ms)
+
     risk = risk_level(event)
     state = {
         "version": 1,
@@ -601,11 +709,19 @@ def main():
     )
 
     if event.get("hook_event_name") == "PermissionRequest":
-        handled, decision = wait_for_permission_response(base_dir, state_path, state, request_id)
-        if not handled:
+        response = wait_for_response(base_dir, state_path, state, request_id, permission_wait_ms())
+        if response is None:
             mark_decided(state_path, state, "timeout")
-        if decision:
-            print(json.dumps(decision, ensure_ascii=False, separators=(",", ":")))
+        else:
+            mark_decided(state_path, state, response.get("action_id") or "")
+            decision = decision_for_response(response)
+            if decision:
+                print(json.dumps(decision, ensure_ascii=False, separators=(",", ":")))
+
+    if is_stop:
+        output = ask_pending_question(base_dir, state_path, event, now_ms)
+        if output:
+            print(json.dumps(output, ensure_ascii=False, separators=(",", ":")))
 
 
 if __name__ == "__main__":

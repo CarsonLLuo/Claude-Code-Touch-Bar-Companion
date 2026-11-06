@@ -11,12 +11,14 @@ struct ActionResponderTests {
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
     }
 
-    func writeState(risk: String = "low", expiresAt: Int64 = nowMs() + 30_000) throws {
+    func writeState(
+        risk: String = "low", kind: String = "PermissionRequest", expiresAt: Int64 = nowMs() + 30_000
+    ) throws {
         let state: [String: Any] = [
             "version": 1,
             "request_id": "req-1",
             "session_id": "sess-1",
-            "kind": "PermissionRequest",
+            "kind": kind,
             "context": "Edit foo.md",
             "risk": risk,
             "expires_at": expiresAt,
@@ -53,6 +55,12 @@ struct ActionResponderTests {
 
         let log = try String(contentsOf: dir.appendingPathComponent("actions.jsonl"), encoding: .utf8)
         #expect(log.contains("\"response_written\":true"))
+    }
+
+    @Test func answersNextStepQuestion() throws {
+        try writeState(kind: "NextStepQuestion")
+        #expect(ActionResponder.perform(index: 2, expectedRequestId: "req-1", baseDir: dir))
+        #expect(try readResponse()?["action_label"] as? String == "No")
     }
 
     @Test func ignoresStaleButton() throws {
