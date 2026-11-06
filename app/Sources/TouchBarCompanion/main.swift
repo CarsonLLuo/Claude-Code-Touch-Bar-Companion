@@ -36,6 +36,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         accountUsage.start()
 
         watchStateDirectory()
+        recordFrontmostApp(NSWorkspace.shared.frontmostApplication)
+        NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main
+        ) { [weak self] notification in
+            self?.recordFrontmostApp(
+                notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)
+        }
         reload()
         // Usage sectors, reset countdowns and staleness move with the clock.
         minuteTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
@@ -60,6 +67,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         touchBar.uninstall()
+    }
+
+    /// Written on launch and on every app switch. The hook uses `app_pid` to check that this app
+    /// is running before it puts Claude desktop's end-of-turn question on the Touch Bar.
+    private func recordFrontmostApp(_ app: NSRunningApplication?) {
+        let row: [String: Any] = [
+            "bundle_id": app?.bundleIdentifier ?? "",
+            "app_pid": ProcessInfo.processInfo.processIdentifier,
+            "updated_at": nowMs(),
+        ]
+        if let data = try? JSONSerialization.data(withJSONObject: row, options: .sortedKeys) {
+            try? data.write(to: baseDir.appendingPathComponent("frontmost.json"), options: .atomic)
+        }
     }
 
     @objc private func toggleAccountUsage() {

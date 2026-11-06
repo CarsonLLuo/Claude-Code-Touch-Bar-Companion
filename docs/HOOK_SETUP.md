@@ -190,30 +190,68 @@ If no response arrives before timeout, the hook exits without a decision and Cla
 ## Next-Step Questions (Claude Desktop)
 
 Claude desktop ends many turns with a "next step" box: a question plus one or two reply
-buttons (for example *Commit and push?* · `提交并推送` · `先不提交`). The hook mirrors it on
-the Touch Bar:
+buttons (for example *Commit and push?* · `提交并推送` · `先不提交`). The same question is shown on
+the Touch Bar at the same time, and you can answer in either place.
 
 1. `PreToolUse` of `mcp__ccd_turn__wrap_up` saves the question and the labeled buttons to
-   `pending-question.json`. Nothing waits here. App actions without a label (commit, create
-   PR, ...) are left to the screen.
-2. At `Stop`, if this turn saved a question, the hook shows
-   `[question] [choice 1] [choice 2] [On screen]` and waits up to 20 seconds
-   (`CLAUDE_TOUCHBAR_QUESTION_TIMEOUT_MS`). Turns without a question end immediately.
-3. A tap on a choice is returned as Stop `additionalContext`
-   (`The user chose 「…」 on the Touch Bar, answering your question: …`), so Claude
-   continues the same turn with it. `On screen`, closing the bar or the timeout end the turn
-   normally.
+   `pending-question.json`. App actions without a label (commit, create PR, ...) are left to
+   the screen.
+2. When the turn ends, a second Stop hook runs **in the background** (`asyncRewake`), so the
+   turn is not held and the box appears on screen right away. It shows
+   `[question] [choice 1] [choice 2] [On screen]` on the Touch Bar for up to 5 minutes
+   (`CLAUDE_TOUCHBAR_QUESTION_TIMEOUT_MS`).
+3. Tapping a choice makes the hook exit with code 2. Its message
+   (`The user chose 「…」 on the Touch Bar, answering your question: …`) wakes Claude, even
+   when the session is idle, and Claude carries on with it.
+4. Answering on screen (or typing anything) starts a new turn. Its `UserPromptSubmit` event
+   replaces `state.json`, and the background hook withdraws the question from the Touch Bar.
+   `On screen` and the timeout also withdraw it.
 
-Tested in Claude desktop:
+Hook configuration for this (in addition to the regular `Stop` hook):
 
-- The box is already on screen while the Touch Bar asks, so either can be used.
-- Returning `decision: "block"` instead shows up as a "Stop hook blocking error"; that is why
-  `additionalContext` is used.
-- Clicking the box on screen while the hook waits is queued until the hook ends: the click is
-  not written to the transcript earlier, so the hook cannot notice it. Tap `On screen` first
-  to answer on screen without the wait.
+```json
+"Stop": [{ "hooks": [
+  { "type": "command", "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/touchbar-hook.sh" },
+  { "type": "command", "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/touchbar-hook.sh question",
+    "asyncRewake": true, "timeout": 330 }
+]}],
+"UserPromptSubmit": [{ "hooks": [
+  { "type": "command", "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/touchbar-hook.sh" }
+]}]
+```
 
-`questions.jsonl` logs when each question was asked and how it ended; a question without an
+What testing in Claude desktop showed, and why it works this way:
+
+- Claude desktop only shows its box after every synchronous Stop hook has finished. An
+  earlier version waited in a synchronous Stop hook, which hid the box for the whole wait.
+- A synchronous Stop hook's `decision: "block"` shows up as a "Stop hook blocking error";
+  `additionalContext` reads better but still holds the turn. `asyncRewake` avoids both.
+- The question is skipped when the Touch Bar app is not running (its pid is in
+  `frontmost.json`).
+
+### A Touch Bar answer is a hint, not an approval
+
+Claude Code delivers the background hook's message as a system notification that is
+explicitly *not* user input: Claude cannot tell a real tap from any program that writes the
+same response file. So a Touch Bar answer steers what Claude does next, but it never counts
+as consent for outward-facing or hard-to-undo actions such as committing or pushing.
+
+Those actions get their consent from Claude Code's permission system instead. Add `ask`
+rules so they always raise a permission request, which also shows on the Touch Bar:
+
+```json
+"permissions": {
+  "ask": ["Bash(git commit *)", "Bash(git push *)", "Bash(git push)", "Bash(gh pr *)"]
+}
+```
+
+*Commit and push?* then takes two taps, both on the Touch Bar: the answer, and `Yes` on the
+permission request for the combined `git commit … && git push`. `ask` rules apply even when
+a broader `allow` rule (such as `"Bash"`) or bypass-permissions mode would let the command
+run.
+
+`questions.jsonl` logs when each question was asked and how it ended (`choice_N`, `screen`,
+`answered elsewhere`, `timeout`, or `skipped` with a reason); a question without an
 `ended_at` line means the hook was cut off while waiting.
 
 ## Sanitized Logs

@@ -59,7 +59,7 @@ agentic coding 里充满了小决策：
 | Claude 桌面 app 回合结束时的"下一步"提问 | `Commit and push this change?` | `提交并推送 / 先不提交 / On screen` |
 | 没有待处理的请求 | `CC Ready` | 无 |
 
-在"下一步"提问上点的选项，会作为反馈传回给 Claude，回合接着进行。Touch Bar 会等 20 秒，这期间在屏幕上点按钮会被排到等待结束后才生效，想在屏幕上回答可以先点 `On screen`。详见 [docs/HOOK_SETUP.md](docs/HOOK_SETUP.md#next-step-questions-claude-desktop)。
+"下一步"提问会同时出现在屏幕和 Touch Bar 上，两边都能回答。在 Touch Bar 上点选项，会带着你的选择唤醒 Claude；在屏幕上回答，Touch Bar 上的问题会自动撤掉。详见 [docs/HOOK_SETUP.md](docs/HOOK_SETUP.md#next-step-questions-claude-desktop)。
 
 Context 是白底的只读 item，前面可以显示 `~/.claude-touchbar/icon.png` 里的图标。按钮按含义上色：`Yes` 绿色，本会话授权蓝色，`No` 红色，Review 类灰色。
 

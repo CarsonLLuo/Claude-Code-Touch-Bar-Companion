@@ -15,7 +15,8 @@ HIGH_RISK_PATTERN = re.compile(
 )
 DEFAULT_EXPIRES_MS = 30000
 DEFAULT_PERMISSION_WAIT_MS = 20000
-DEFAULT_QUESTION_WAIT_MS = 20000
+# The question waits in a background (asyncRewake) hook, so it can stay up for a while.
+DEFAULT_QUESTION_WAIT_MS = 5 * 60 * 1000
 # Claude desktop's end-of-turn "next step" box (question + reply buttons).
 QUESTION_TOOL = "mcp__ccd_turn__wrap_up"
 QUESTION_MAX_AGE_MS = 15 * 60 * 1000
@@ -328,6 +329,9 @@ def context_text(event):
     if event_name == "Stop":
         return "Claude done"
 
+    if event_name == "UserPromptSubmit":
+        return "Claude working"
+
     return event_name
 
 
@@ -527,20 +531,39 @@ def mark_decided(state_path, state, action_id):
     atomic_write(state_path, json.dumps(updated, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
 
 
-def wait_for_response(base_dir, state_path, state, request_id, wait_ms):
-    """Polls for responses/<request_id>.json written by the Touch Bar app. Returns it, or None on timeout."""
+def state_is_ours(state_path, request_id):
+    """False once a newer event (e.g. the request answered on screen) has replaced state.json."""
+    try:
+        with open(state_path, "r", encoding="utf-8") as handle:
+            return json.load(handle).get("request_id") == request_id
+    except (FileNotFoundError, json.JSONDecodeError):
+        return True
+
+
+def wait_for_response(base_dir, state_path, state, request_id, wait_ms, stop_waiting=None):
+    """Polls for responses/<request_id>.json written by the Touch Bar app.
+
+    Returns the response, or None on timeout, as soon as `stop_waiting()` is true, or once a
+    newer event has replaced state.json (never write the old state back over it).
+    """
     deadline = time.time() + wait_ms / 1000
     path = response_path(base_dir, request_id)
     last_refresh = time.time()
 
     while time.time() < deadline:
-        # Refresh expires_at every 5 seconds so BTT keeps showing the buttons
+        if not state_is_ours(state_path, request_id):
+            return None
+
+        # Refresh expires_at every 5 seconds so the Touch Bar keeps showing the buttons
         now = time.time()
         if now - last_refresh >= 5:
             refreshed = dict(state)
             refreshed["expires_at"] = int((now + DEFAULT_EXPIRES_MS / 1000) * 1000)
             atomic_write(state_path, json.dumps(refreshed, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
             last_refresh = now
+
+        if stop_waiting and stop_waiting():
+            return None
 
         try:
             with open(path, "r", encoding="utf-8") as response_file:
@@ -558,8 +581,39 @@ def wait_for_response(base_dir, state_path, state, request_id, wait_ms):
     return None
 
 
+def touch_bar_app_running(base_dir):
+    """The Touch Bar app records its pid in frontmost.json; without it nothing can show a question."""
+    try:
+        with open(os.path.join(base_dir, "frontmost.json"), "r", encoding="utf-8") as handle:
+            os.kill(int(json.load(handle)["app_pid"]), 0)
+        return True
+    except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError):
+        return False
+
+
+def log_question(base_dir, row):
+    with open(os.path.join(base_dir, "questions.jsonl"), "a", encoding="utf-8") as log_file:
+        log_file.write(json.dumps(row, ensure_ascii=False) + "\n")
+
+
 def pending_question_path(base_dir):
     return os.path.join(base_dir, "pending-question.json")
+
+
+def active_question_path(base_dir):
+    return os.path.join(base_dir, "active-question.json")
+
+
+def question_owns_stop(base_dir, session_id):
+    """True when this turn ended with a question, so the Stop state belongs to the question hook."""
+    for path in (pending_question_path(base_dir), active_question_path(base_dir)):
+        try:
+            with open(path, "r", encoding="utf-8") as handle:
+                if json.load(handle).get("session_id") == session_id:
+                    return True
+        except (FileNotFoundError, json.JSONDecodeError):
+            continue
+    return False
 
 
 def remember_question(base_dir, event, now_ms):
@@ -584,71 +638,71 @@ def remember_question(base_dir, event, now_ms):
 
 
 def ask_pending_question(base_dir, state_path, event, now_ms):
-    """Stop: show the turn's question on the Touch Bar and wait briefly for a tap.
+    """Background Stop hook (asyncRewake): mirror the turn's question on the Touch Bar.
 
-    A tap is relayed to Claude as Stop hook feedback, so the turn continues with the user's
-    choice. "On screen", closing the bar or a timeout ends the turn normally.
+    The turn has already ended, so Claude desktop shows its box at the same time. A tap returns
+    a message that wakes Claude (exit code 2). Answering on screen starts a new turn, which
+    replaces state.json and withdraws the question here. Returns the message, or None.
     """
-    path = pending_question_path(base_dir)
+    active = active_question_path(base_dir)
     try:
-        with open(path, "r", encoding="utf-8") as handle:
+        os.replace(pending_question_path(base_dir), active)
+        with open(active, "r", encoding="utf-8") as handle:
             question = json.load(handle)
     except (FileNotFoundError, json.JSONDecodeError):
         return None
-    os.unlink(path)
 
-    if question.get("session_id") != event.get("session_id"):
-        return None
-    if now_ms - int(question.get("at") or 0) > QUESTION_MAX_AGE_MS:
-        return None
+    try:
+        if question.get("session_id") != event.get("session_id"):
+            return None
+        if now_ms - int(question.get("at") or 0) > QUESTION_MAX_AGE_MS:
+            return None
 
-    ask = question["ask"]
-    request_id = str(uuid.uuid4())
-    actions = [{"id": f"choice_{index}", "label": label} for index, label in enumerate(question["labels"])]
-    actions.append({"id": "screen", "label": "On screen"})
-    state = {
-        "version": 1,
-        "request_id": request_id,
-        "session_id": event.get("session_id") or "unknown",
-        "updated_at": now_ms,
-        "expires_at": now_ms + DEFAULT_EXPIRES_MS,
-        "kind": "NextStepQuestion",
-        "context": ask[:80],
-        "risk": "low",
-        "actions": actions,
-    }
-    atomic_write(state_path, json.dumps(state, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+        ask = question["ask"]
+        request_id = str(uuid.uuid4())
+        if not touch_bar_app_running(base_dir):
+            log_question(base_dir, {"request_id": request_id, "asked_at": now_ms, "ask": ask, "skipped": "touch bar app not running"})
+            return None
 
-    log_path = os.path.join(base_dir, "questions.jsonl")
-    with open(log_path, "a", encoding="utf-8") as log_file:
-        log_file.write(json.dumps({"request_id": request_id, "asked_at": now_ms, "ask": ask}, ensure_ascii=False) + "\n")
-
-    response = wait_for_response(base_dir, state_path, state, request_id, question_wait_ms())
-    action_id = (response or {}).get("action_id") or ""
-    label = (response or {}).get("action_label") or ""
-
-    # No "ended" line for a request_id means the hook was cut off while waiting.
-    with open(log_path, "a", encoding="utf-8") as log_file:
-        ended = {"request_id": request_id, "ended_at": int(time.time() * 1000), "outcome": action_id or "timeout"}
-        log_file.write(json.dumps(ended) + "\n")
-
-    finished = dict(state)
-    finished["actions"] = []
-    finished["kind"] = "question_answered"
-    finished["expires_at"] = int(time.time() * 1000) + 3000
-    finished["context"] = f"Sent: {label}" if action_id.startswith("choice_") else "Answer on screen"
-    atomic_write(state_path, json.dumps(finished, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
-
-    if not action_id.startswith("choice_"):
-        return None
-    # additionalContext continues the turn as plain feedback; decision "block" shows up in
-    # the conversation as a "blocking error", which reads like something went wrong.
-    return {
-        "hookSpecificOutput": {
-            "hookEventName": "Stop",
-            "additionalContext": f"The user chose \u300c{label}\u300d on the Touch Bar, answering your question: {ask}",
+        actions = [{"id": f"choice_{index}", "label": label} for index, label in enumerate(question["labels"])]
+        actions.append({"id": "screen", "label": "On screen"})
+        state = {
+            "version": 1,
+            "request_id": request_id,
+            "session_id": event.get("session_id") or "unknown",
+            "updated_at": now_ms,
+            "expires_at": now_ms + DEFAULT_EXPIRES_MS,
+            "kind": "NextStepQuestion",
+            "context": ask[:80],
+            "risk": "low",
+            "actions": actions,
         }
-    }
+        atomic_write(state_path, json.dumps(state, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+        log_question(base_dir, {"request_id": request_id, "asked_at": now_ms, "ask": ask})
+
+        response = wait_for_response(base_dir, state_path, state, request_id, question_wait_ms())
+        action_id = (response or {}).get("action_id") or ""
+        label = (response or {}).get("action_label") or ""
+        withdrawn = response is None and not state_is_ours(state_path, request_id)
+
+        # No "ended" line for a request_id means the hook was cut off while waiting.
+        outcome = action_id or ("answered elsewhere" if withdrawn else "timeout")
+        log_question(base_dir, {"request_id": request_id, "ended_at": int(time.time() * 1000), "outcome": outcome})
+
+        if not withdrawn:
+            finished = dict(state)
+            finished["actions"] = []
+            finished["kind"] = "question_answered"
+            finished["expires_at"] = int(time.time() * 1000) + 3000
+            finished["context"] = f"Sent: {label}" if action_id.startswith("choice_") else "Answer on screen"
+            atomic_write(state_path, json.dumps(finished, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+
+        if not action_id.startswith("choice_"):
+            return None
+        return f"The user chose \u300c{label}\u300d on the Touch Bar, answering your question: {ask}"
+    finally:
+        if os.path.exists(active):
+            os.unlink(active)
 
 
 def main():
@@ -663,11 +717,21 @@ def main():
 
     now_ms = int(time.time() * 1000)
     is_stop = event.get("hook_event_name") == "Stop"
+    state_path = os.path.join(base_dir, "state.json")
+
+    # `touchbar-hook.sh question` runs as a separate asyncRewake Stop hook (see HOOK_SETUP.md).
+    if "question" in sys.argv[1:]:
+        if is_stop:
+            message = ask_pending_question(base_dir, state_path, event, now_ms)
+            if message:
+                sys.stderr.write(message)
+                sys.exit(2)
+        return
+
     expires_ms = now_ms + (3000 if is_stop else DEFAULT_EXPIRES_MS)
     request_id = str(uuid.uuid4())
 
     last_event_path = os.path.join(base_dir, "last-event.json")
-    state_path = os.path.join(base_dir, "state.json")
     log_path = os.path.join(base_dir, "events.jsonl")
     stored_event = sanitized_event(event)
 
@@ -703,25 +767,23 @@ def main():
         "raw_event_path": last_event_path,
     }
 
-    atomic_write(
-        state_path,
-        json.dumps(state, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-    )
+    # A turn that ends with a question leaves the Touch Bar to the question hook.
+    if not (is_stop and question_owns_stop(base_dir, event.get("session_id"))):
+        atomic_write(
+            state_path,
+            json.dumps(state, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        )
 
     if event.get("hook_event_name") == "PermissionRequest":
         response = wait_for_response(base_dir, state_path, state, request_id, permission_wait_ms())
         if response is None:
-            mark_decided(state_path, state, "timeout")
+            if state_is_ours(state_path, request_id):
+                mark_decided(state_path, state, "timeout")
         else:
             mark_decided(state_path, state, response.get("action_id") or "")
             decision = decision_for_response(response)
             if decision:
                 print(json.dumps(decision, ensure_ascii=False, separators=(",", ":")))
-
-    if is_stop:
-        output = ask_pending_question(base_dir, state_path, event, now_ms)
-        if output:
-            print(json.dumps(output, ensure_ascii=False, separators=(",", ":")))
 
 
 if __name__ == "__main__":

@@ -100,11 +100,13 @@ BTT 试用已到期，目前没有可用的 Touch Bar 渲染层。方向调整�
 
 ### 新增：Claude 桌面 app 的"下一步"提问上 Touch Bar（2026-11-06 实测通过）
 
-- [x] PreToolUse 记下 `mcp__ccd_turn__wrap_up` 的问题和按钮，Stop 时显示 `[问题] [选项] [选项] [On screen]`，等 20 秒
-- [x] 点选项用 Stop `additionalContext` 回传（`decision: "block"` 会显示成 "blocking error"）
+- [x] PreToolUse 记下 `mcp__ccd_turn__wrap_up` 的问题和按钮，Touch Bar 显示 `[问题] [选项] [选项] [On screen]`
 - [x] `questions.jsonl` 记录每个问题的开始 / 结束
-- 已知限制：等待期间在屏幕上点按钮会被排队到 hook 结束，hook 无从察觉；先点 `On screen` 可立即放行
+- [x] 实测发现：同步 Stop hook 等待期间屏幕上的提问框是隐藏的（桌面 app 要等同步 Stop hook 全部结束才显示）
+- [x] 改为后台 `asyncRewake` Stop hook：回合立即结束，屏幕和 Touch Bar 同时显示提问；点 Touch Bar → 退出码 2 唤醒 Claude；在屏幕上回答 → 新回合的 `UserPromptSubmit` 撤掉 Touch Bar 上的问题；最多挂 5 分钟；Touch Bar app 没运行时跳过（pid 记在 `frontmost.json`）
 - 依赖桌面 app 内部工具，app 更新可能失效；终端里不适用
+- [x] 实测：asyncRewake 送来的回答被标注为"不是用户输入"，不能作为提交 / 推送等对外操作的同意。改为给 `git commit`、`git push`、`gh pr` 加 `ask` 规则，由权限请求（同样在 Touch Bar 上）把关：点一次答案 + 一次权限 `Yes`
+- [x] 修复：hook 等待时每 5 秒刷新 state，会把"已在屏幕上处理"的新状态覆盖回旧请求，导致 Touch Bar 残留按钮；现在发现 state 被新事件接管就立即停止等待、不再回写
 - [ ] 后续：同样的方式支持官方的 `AskUserQuestion`（PreToolUse + `updatedInput.answers`，终端和桌面都能用）
 
 ### 提前完成（原属阶段 5）
