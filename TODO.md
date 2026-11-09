@@ -85,7 +85,8 @@ MVP 核心链路已跑通。`PermissionRequest` hook 端到端可用，Touch Bar
 - [x] 修复：hook 等待时每 5 秒刷新 state，会把"已在屏幕上处理"的新状态覆盖回旧请求，导致 Touch Bar 残留按钮；现在发现 state 被新事件接管就立即停止等待、不再回写；但 "Claude needs your permission" 这类 Notification 不算新进展，不会覆盖仍在等待的请求（否则请求约 6 秒就会消失）
 - [ ] 提交推送的权限请求在 Touch Bar 上显示成提问框样式（底层仍是权限请求）：`Commit & push? <提交标题>` + `提交并推送`（蓝）/ `先不提交` / `On screen`；只单独推送时为 `Push?` / `推送`；其他权限请求保持 `Yes / No / Review`。屏幕上的权限框是桌面 app 的标准样式，改不了
 - 已知：在 Touch Bar 上回答"下一步"提问后，屏幕上的提问框要过几秒（Claude 被唤醒、新回合开始）才消失，桌面 app 的行为，无法从 hook 关闭
-- [ ] 后续：同样的方式支持官方的 `AskUserQuestion`（PreToolUse + `updatedInput.answers`，终端和桌面都能用）
+- [x] 支持官方的 `AskUserQuestion`（2026-11-09 实测通过）：它会触发 `PermissionRequest`（bypass 模式下也会），Touch Bar 显示 `[问题] [选项1] [选项2] [On screen]`，点选项后以 `allow` + `updatedInput.answers` 回传；多个问题或多选时只显示 `On screen`（以前的 `Yes` 会让问题以"无答案"通过）。限制：沿用权限请求 20 秒的等待时间，超时后只能在屏幕上回答
+- [x] Touch Bar hook 和 statusLine 移到全局 `~/.claude/settings.json`（绝对路径），所有项目都生效；`git commit` / `push` / `gh pr` 的 `ask` 规则仍只在本项目
 
 ### 阶段 2（续）：卡通形象
 

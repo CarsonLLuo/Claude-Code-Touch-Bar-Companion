@@ -19,6 +19,7 @@ DEFAULT_PERMISSION_WAIT_MS = 20000
 DEFAULT_QUESTION_WAIT_MS = 5 * 60 * 1000
 # Claude desktop's end-of-turn "next step" box (question + reply buttons).
 QUESTION_TOOL = "mcp__ccd_turn__wrap_up"
+ASK_TOOL = "AskUserQuestion"
 QUESTION_MAX_AGE_MS = 15 * 60 * 1000
 MAX_QUESTION_CHOICES = 2
 POLL_INTERVAL_SECONDS = 0.2
@@ -318,12 +319,28 @@ def write_context_text(event, target):
     return f"Write {target}"
 
 
+def single_question(event):
+    """AskUserQuestion with one single-choice question: the only kind the Touch Bar can answer."""
+    if event.get("tool_name") != ASK_TOOL:
+        return None
+    questions = (event.get("tool_input") or {}).get("questions") or []
+    if len(questions) != 1 or not isinstance(questions[0], dict):
+        return None
+    question = questions[0]
+    if question.get("multiSelect") or not question.get("question") or not question.get("options"):
+        return None
+    return question
+
+
 def context_text(event):
     event_name = event.get("hook_event_name") or "unknown"
     tool_name = event.get("tool_name") or "tool"
     target = display_target(event)
 
     if event_name == "PermissionRequest":
+        question = single_question(event)
+        if question:
+            return str(question["question"])
         if tool_name == "Bash":
             return bash_context_text(event, "Run")
         if tool_name == "Read":
@@ -426,6 +443,17 @@ def actions_for_state(event, risk):
     event_name = event.get("hook_event_name") or "unknown"
     tool_name = event.get("tool_name") or ""
 
+    # AskUserQuestion: a bare "Yes" would run it with no answer, so offer its options instead.
+    if event_name == "PermissionRequest" and tool_name == ASK_TOOL:
+        question = single_question(event)
+        options = question["options"][:MAX_QUESTION_CHOICES] if question else []
+        actions = [
+            {"id": f"answer_{index}", "label": str(option.get("label") or "")}
+            for index, option in enumerate(options)
+            if isinstance(option, dict) and option.get("label")
+        ]
+        return actions + [{"id": "screen", "label": "On screen"}]
+
     if event_name == "PermissionRequest" and risk in ("low", "medium"):
         if tool_name == "Read":
             read_permission = read_session_permission(event)
@@ -502,8 +530,22 @@ def response_path(base_dir, request_id):
     return os.path.join(base_dir, "responses", f"{request_id}.json")
 
 
-def decision_for_response(response):
+def decision_for_response(response, event):
     action_id = response.get("action_id") or ""
+
+    if action_id.startswith("answer_"):
+        question = single_question(event)
+        tool_input = event.get("tool_input") or {}
+        if not question:
+            return None
+        updated_input = dict(tool_input)
+        updated_input["answers"] = {question["question"]: response.get("action_label") or ""}
+        return {
+            "hookSpecificOutput": {
+                "hookEventName": "PermissionRequest",
+                "decision": {"behavior": "allow", "updatedInput": updated_input},
+            },
+        }
 
     if action_id in ("allow", "allow_session_edits", "allow_session_read"):
         decision = {
@@ -540,6 +582,8 @@ def mark_decided(state_path, state, action_id):
         updated["context"] = "Touch Bar allowed"
     elif action_id == "deny":
         updated["context"] = "Touch Bar denied"
+    elif action_id.startswith("answer_"):
+        updated["context"] = "Touch Bar answered"
     elif action_id == "timeout":
         updated["expires_at"] = int(time.time() * 1000) + 3000
         updated["actions"] = []
@@ -819,7 +863,7 @@ def main():
                 mark_decided(state_path, state, "timeout")
         else:
             mark_decided(state_path, state, response.get("action_id") or "")
-            decision = decision_for_response(response)
+            decision = decision_for_response(response, event)
             if decision:
                 print(json.dumps(decision, ensure_ascii=False, separators=(",", ":")))
 
