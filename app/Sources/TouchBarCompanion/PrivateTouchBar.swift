@@ -20,6 +20,11 @@ enum PrivateTouchBar {
         setControlStripPresence?(item.identifier.rawValue as NSString, true)
     }
 
+    /// Another app's item (e.g. Sogou input's) can take the Control Strip slot; this takes it back.
+    static func reassertControlStripPresence(_ item: NSTouchBarItem) {
+        setControlStripPresence?(item.identifier.rawValue as NSString, true)
+    }
+
     static func removeFromControlStrip(_ item: NSTouchBarItem) {
         setControlStripPresence?(item.identifier.rawValue as NSString, false)
         callClassMethod(on: NSTouchBarItem.self, "removeSystemTrayItem:", item)

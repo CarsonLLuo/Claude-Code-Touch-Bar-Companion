@@ -42,11 +42,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         ) { [weak self] notification in
             self?.recordFrontmostApp(
                 notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)
+            self?.touchBar.reassertControlStrip()
         }
         reload()
         // Usage sectors, reset countdowns and staleness move with the clock.
         minuteTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
             self?.reload()
+            self?.touchBar.reassertControlStrip()
         }
     }
 

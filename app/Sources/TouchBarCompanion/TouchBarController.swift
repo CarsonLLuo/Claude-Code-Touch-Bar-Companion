@@ -78,6 +78,10 @@ final class TouchBarController: NSObject, NSTouchBarDelegate {
         trayItem = tray
     }
 
+    func reassertControlStrip() {
+        if let trayItem { PrivateTouchBar.reassertControlStripPresence(trayItem) }
+    }
+
     /// Without this, a killed process can leave a dead `CC` item behind in the Control Strip.
     func uninstall() {
         PrivateTouchBar.minimize(touchBar)
