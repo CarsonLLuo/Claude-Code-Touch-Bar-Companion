@@ -86,6 +86,15 @@ enum UsageRenderer {
         }
     }
 
+    /// The segmented battery on its own, for the menu bar menu.
+    static func batteryImage(_ usage: WindowUsage, stale: Bool) -> NSImage {
+        let size = NSSize(width: 60, height: 14)
+        return NSImage(size: size, flipped: false) { _ in
+            drawBattery(usage.segments, in: NSRect(x: 0, y: 0, width: size.width - 3, height: size.height), stale: stale, thin: true)
+            return true
+        }
+    }
+
     private static func drawBattery(_ segments: [UsageSegment], in rect: NSRect, stale: Bool, thin: Bool = false) {
         let border: CGFloat = thin ? 1 : 1.5
         let body = NSBezierPath(roundedRect: rect.insetBy(dx: border / 2, dy: border / 2), xRadius: thin ? 2 : 3.5, yRadius: thin ? 2 : 3.5)

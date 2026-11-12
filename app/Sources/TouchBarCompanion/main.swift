@@ -1,7 +1,7 @@
 import AppKit
 import CompanionCore
 
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let baseDir = CompanionStore.baseDirectory()
     private lazy var touchBar = TouchBarController(
         icon: NSImage(contentsOf: baseDir.appendingPathComponent("icon.png")))
@@ -60,11 +60,71 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         accountUsageMenuItem.state = accountUsage.isEnabled ? .on : .off
         accountUsageMenuItem.toolTip =
             "Reads Claude Code's sign-in token from your keychain to check 5h / 7d usage every 5 minutes."
+        menu.delegate = self
+        item.menu = menu
+        statusItem = item
+    }
+
+    /// Rebuilt each time the menu opens, from the same files the Touch Bar reads.
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        menu.removeAllItems()
+
+        let state = CompanionStore.activeState(in: baseDir)
+        let waiting = ["PermissionRequest", "NextStepQuestion"].contains(state?.kind ?? "")
+        menu.addItem(infoItem((waiting ? "Waiting for you: " : "") + (state?.context ?? "CC Ready"), primary: true))
+        let lastEvent = (try? FileManager.default.attributesOfItem(
+            atPath: baseDir.appendingPathComponent("last-event.json").path))?[.modificationDate] as? Date
+        menu.addItem(infoItem(lastEvent.map { "Last hook event \(Self.ago($0))" }
+            ?? "No hook events yet. Check the hook setup."))
+
+        menu.addItem(.separator())
+        menu.addItem(infoItem("Usage"))
+        if let usage = UsageStore.load(in: baseDir) {
+            for window in [usage.fiveHour, usage.sevenDay].compactMap({ $0 }) {
+                let reset = window.kind == .fiveHour
+                    ? "resets in \(UsageRenderer.resetText(window))" : "resets \(UsageRenderer.resetText(window))"
+                let item = infoItem(
+                    "\(window.kind.label)  \(UsageRenderer.remaining(window))% left · \(reset)", primary: true)
+                item.image = UsageRenderer.batteryImage(window, stale: usage.isStale)
+                menu.addItem(item)
+            }
+            if usage.isStale { menu.addItem(infoItem("Not updated for over 30 minutes")) }
+        } else {
+            menu.addItem(infoItem("No usage data yet"))
+        }
+
+        menu.addItem(.separator())
+        menu.addItem(infoItem("Recent Touch Bar answers"))
+        let recent = RecentActions.load(in: baseDir, limit: 3)
+        for action in recent {
+            let at = Date(timeIntervalSince1970: TimeInterval(action.clickedAt) / 1000)
+            let context = action.context.count > 40 ? action.context.prefix(39) + "…" : action.context
+            menu.addItem(infoItem("\(context) → \(action.label) · \(Self.ago(at))", primary: true))
+        }
+        if recent.isEmpty { menu.addItem(infoItem("None yet")) }
+
+        menu.addItem(.separator())
         menu.addItem(accountUsageMenuItem)
         menu.addItem(.separator())
         menu.addItem(withTitle: "Quit Touch Bar Companion", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
-        item.menu = menu
-        statusItem = item
+    }
+
+    /// A read-only row. Disabled items would gray out, so the color is set explicitly.
+    private func infoItem(_ title: String, primary: Bool = false) -> NSMenuItem {
+        let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+        item.isEnabled = false
+        item.attributedTitle = NSAttributedString(string: title, attributes: [
+            .font: NSFont.menuFont(ofSize: primary ? 0 : NSFont.smallSystemFontSize),
+            .foregroundColor: primary ? NSColor.labelColor : NSColor.secondaryLabelColor,
+        ])
+        return item
+    }
+
+    private static func ago(_ date: Date) -> String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.unitsStyle = .short
+        return formatter.localizedString(for: min(date, Date()), relativeTo: Date())
     }
 
     func applicationWillTerminate(_ notification: Notification) {
