@@ -35,6 +35,21 @@ struct RecentActionsTests {
         ])
     }
 
+    @Test func repeatedTapInSameSessionShowsOnce() throws {
+        try writeLog([
+            #"{"action":{"label":"On screen"},"clicked_at":1,"context":"Which first?","session_id":"a"}"#,
+            #"{"action":{"label":"Yes"},"clicked_at":2,"context":"Push","session_id":"a"}"#,
+            #"{"action":{"label":"On screen"},"clicked_at":3,"context":"Which first?","session_id":"b"}"#,
+            #"{"action":{"label":"On screen"},"clicked_at":4,"context":"Which first?","session_id":"a"}"#,
+        ])
+
+        #expect(RecentActions.load(in: dir, limit: 3) == [
+            RecentAction(clickedAt: 4, context: "Which first?", label: "On screen"),
+            RecentAction(clickedAt: 3, context: "Which first?", label: "On screen"),
+            RecentAction(clickedAt: 2, context: "Push", label: "Yes"),
+        ])
+    }
+
     @Test func readsWhatActionResponderWrites() throws {
         let state: [String: Any] = [
             "request_id": "req-1", "session_id": "sess-1", "kind": "PermissionRequest",
