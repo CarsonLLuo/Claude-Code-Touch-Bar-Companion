@@ -89,9 +89,9 @@ final class TouchBarController: NSObject, NSTouchBarDelegate {
         trayItem = nil
     }
 
-    func render(_ state: CompanionState?, usage: UsageSummary?) {
+    func render(_ state: CompanionState?, usage: UsageSummary?, tokenExpired: Bool = false) {
         let actions = Array((state?.actions ?? []).prefix(Self.maxActions))
-        let usageItems = renderUsage(usage, requestPending: !actions.isEmpty)
+        let usageItems = renderUsage(usage, requestPending: !actions.isEmpty, tokenExpired: tokenExpired)
 
         contextButton.attributedTitle = NSAttributedString(
             string: state?.context ?? "CC Ready",
@@ -123,7 +123,9 @@ final class TouchBarController: NSObject, NSTouchBarDelegate {
     }
 
     /// Updates the Control Strip and returns the usage items to show in the bar.
-    private func renderUsage(_ usage: UsageSummary?, requestPending: Bool) -> [NSTouchBarItem.Identifier] {
+    private func renderUsage(
+        _ usage: UsageSummary?, requestPending: Bool, tokenExpired: Bool
+    ) -> [NSTouchBarItem.Identifier] {
         guard let usage, let binding = usage.binding else {
             trayButton.image = nil
             trayButton.title = "CC"
@@ -150,7 +152,8 @@ final class TouchBarController: NSObject, NSTouchBarDelegate {
             guard let window else { continue }
             button.image = UsageRenderer.image(
                 window, batteryWidth: 130, number: "\(UsageRenderer.remaining(window))%",
-                trailing: UsageRenderer.resetText(window), stale: usage.isStale,
+                trailing: usage.isStale && tokenExpired ? "token expired" : UsageRenderer.resetText(window),
+                stale: usage.isStale,
                 charging: !usage.isStale && UsageRenderer.refillsSoon(window))
             items.append(identifier)
         }

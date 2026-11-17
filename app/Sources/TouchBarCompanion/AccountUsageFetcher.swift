@@ -17,6 +17,9 @@ final class AccountUsageFetcher {
     private var timer: Timer?
     private var inFlight = false
     private var lastAttempt = Date.distantPast
+    /// True while the last fetch was skipped because Claude Code's token had expired.
+    private(set) var tokenExpired = false
+    var onUpdate: (() -> Void)?
 
     var isEnabled: Bool {
         get { UserDefaults.standard.bool(forKey: Self.defaultsKey) }
@@ -41,6 +44,7 @@ final class AccountUsageFetcher {
     func stop() {
         timer?.invalidate()
         timer = nil
+        tokenExpired = false
     }
 
     /// Also called when the Control Strip item is tapped, throttled by `ifOlderThan`.
@@ -50,15 +54,23 @@ final class AccountUsageFetcher {
         lastAttempt = Date()
         let baseDir = baseDir
         DispatchQueue.global(qos: .utility).async { [weak self] in
-            if let snapshot = Self.fetchSnapshot() {
+            var expired = false
+            if let snapshot = Self.fetchSnapshot(tokenExpired: &expired) {
                 UsageRecorder.record(snapshot, source: "account", in: baseDir)
             }
-            DispatchQueue.main.async { self?.inFlight = false }
+            DispatchQueue.main.async {
+                guard let self else { return }
+                self.inFlight = false
+                if self.tokenExpired != expired {
+                    self.tokenExpired = expired
+                    self.onUpdate?()
+                }
+            }
         }
     }
 
-    private static func fetchSnapshot() -> UsageSnapshot? {
-        guard let token = readToken() else { return nil }
+    private static func fetchSnapshot(tokenExpired: inout Bool) -> UsageSnapshot? {
+        guard let token = readToken(expired: &tokenExpired) else { return nil }
 
         var request = URLRequest(url: endpoint, timeoutInterval: 15)
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
@@ -82,7 +94,7 @@ final class AccountUsageFetcher {
 
     /// Reads Claude Code's OAuth token through `/usr/bin/security`, the same way Claude Code
     /// itself accesses the item, so no extra keychain permission is needed for this app.
-    private static func readToken() -> String? {
+    private static func readToken(expired: inout Bool) -> String? {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/security")
         process.arguments = ["find-generic-password", "-s", "Claude Code-credentials", "-w"]
@@ -108,6 +120,7 @@ final class AccountUsageFetcher {
         }
         if let expiresAt = (oauth["expiresAt"] as? NSNumber)?.int64Value, expiresAt <= nowMs() + 60_000 {
             NSLog("TouchBarCompanion: Claude Code token expired; waiting for Claude Code to refresh it")
+            expired = true
             return nil
         }
         return token

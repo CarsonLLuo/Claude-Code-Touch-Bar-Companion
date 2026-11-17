@@ -33,6 +33,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         touchBar.onTrayTap = { [weak self] in self?.accountUsage.fetch(ifOlderThan: 30) }
         touchBar.install()
+        accountUsage.onUpdate = { [weak self] in self?.reload() }
         accountUsage.start()
 
         watchStateDirectory()
@@ -161,7 +162,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func reload() {
         let state = CompanionStore.activeState(in: baseDir)
-        touchBar.render(state, usage: UsageStore.load(in: baseDir))
+        touchBar.render(state, usage: UsageStore.load(in: baseDir), tokenExpired: accountUsage.tokenExpired)
 
         // Fall back to "CC Ready" as soon as the state expires, even if no file changes.
         expiryTimer?.invalidate()
