@@ -6,12 +6,17 @@ import CompanionCore
 ///
 /// - The token is read on every fetch and only kept in memory for that request.
 /// - It is never refreshed here: rotating it could sign Claude Code out. When it has expired,
-///   fetching pauses until Claude Code refreshes it, and the Touch Bar goes gray as data ages.
+///   this runs `claude auth status` so Claude Code can refresh it itself; until it does,
+///   fetching pauses and the Touch Bar goes gray as data ages.
 /// - The endpoint is undocumented and may change; the status line stays as a fallback.
 final class AccountUsageFetcher {
     static let defaultsKey = "fetchUsageFromAccount"
     private static let endpoint = URL(string: "https://api.anthropic.com/api/oauth/usage")!
     private static let pollInterval: TimeInterval = 5 * 60
+    /// Slightly under the poll interval so every scheduled poll may try once.
+    private static let refreshInterval: TimeInterval = 4 * 60
+    /// Only touched from the fetch's background work, which `inFlight` keeps to one at a time.
+    private static var lastRefreshAttempt = Date.distantPast
 
     private let baseDir: URL
     private var timer: Timer?
@@ -70,7 +75,15 @@ final class AccountUsageFetcher {
     }
 
     private static func fetchSnapshot(tokenExpired: inout Bool) -> UsageSnapshot? {
-        guard let token = readToken(expired: &tokenExpired) else { return nil }
+        var token = readToken(expired: &tokenExpired)
+        if token == nil, tokenExpired, Date().timeIntervalSince(lastRefreshAttempt) >= refreshInterval {
+            lastRefreshAttempt = Date()
+            askClaudeCodeToRefresh()
+            tokenExpired = false
+            token = readToken(expired: &tokenExpired)
+            NSLog("TouchBarCompanion: token \(token == nil ? "still expired" : "refreshed") after claude auth status")
+        }
+        guard let token else { return nil }
 
         var request = URLRequest(url: endpoint, timeoutInterval: 15)
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
@@ -90,6 +103,44 @@ final class AccountUsageFetcher {
         }.resume()
         done.wait()
         return result
+    }
+
+    /// Runs `claude auth status`, which starts no session and calls no model, so Claude Code
+    /// can refresh its own token the way it does on launch. Killed after 30 seconds.
+    private static func askClaudeCodeToRefresh() {
+        guard let claude = claudeExecutable() else {
+            NSLog("TouchBarCompanion: claude CLI not found; cannot refresh the token")
+            return
+        }
+        let process = Process()
+        process.executableURL = claude
+        process.arguments = ["auth", "status"]
+        process.currentDirectoryURL = FileManager.default.homeDirectoryForCurrentUser
+        process.standardOutput = FileHandle.nullDevice
+        process.standardError = FileHandle.nullDevice
+        do {
+            try process.run()
+        } catch {
+            NSLog("TouchBarCompanion: cannot run \(claude.path): \(error.localizedDescription)")
+            return
+        }
+        DispatchQueue.global().asyncAfter(deadline: .now() + 30) {
+            if process.isRunning { process.terminate() }
+        }
+        process.waitUntilExit()
+    }
+
+    /// launchd gives no shell PATH, so look where Claude Code is usually installed,
+    /// preferring the newest nvm Node version.
+    private static func claudeExecutable() -> URL? {
+        let home = FileManager.default.homeDirectoryForCurrentUser
+        let nvm = home.appendingPathComponent(".nvm/versions/node")
+        let nodeVersions = ((try? FileManager.default.contentsOfDirectory(atPath: nvm.path)) ?? [])
+            .sorted { $0.compare($1, options: .numeric) == .orderedDescending }
+        let candidates = [home.appendingPathComponent(".local/bin/claude").path, "/opt/homebrew/bin/claude"]
+            + nodeVersions.map { nvm.appendingPathComponent("\($0)/bin/claude").path }
+            + ["/usr/local/bin/claude"]
+        return candidates.first { FileManager.default.isExecutableFile(atPath: $0) }.map(URL.init(fileURLWithPath:))
     }
 
     /// Reads Claude Code's OAuth token through `/usr/bin/security`, the same way Claude Code
