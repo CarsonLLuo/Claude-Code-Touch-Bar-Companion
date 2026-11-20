@@ -6,7 +6,7 @@ import CompanionCore
 ///
 /// - The token is read on every fetch and only kept in memory for that request.
 /// - It is never refreshed here: rotating it could sign Claude Code out. When it has expired,
-///   this runs `claude auth status` so Claude Code can refresh it itself; until it does,
+///   this runs `claude mcp list` so Claude Code can refresh it itself; until it does,
 ///   fetching pauses and the Touch Bar goes gray as data ages.
 /// - The endpoint is undocumented and may change; the status line stays as a fallback.
 final class AccountUsageFetcher {
@@ -81,7 +81,7 @@ final class AccountUsageFetcher {
             askClaudeCodeToRefresh()
             tokenExpired = false
             token = readToken(expired: &tokenExpired)
-            NSLog("TouchBarCompanion: token \(token == nil ? "still expired" : "refreshed") after claude auth status")
+            NSLog("TouchBarCompanion: token \(token == nil ? "still expired" : "refreshed") after claude mcp list")
         }
         guard let token else { return nil }
 
@@ -105,8 +105,8 @@ final class AccountUsageFetcher {
         return result
     }
 
-    /// Runs `claude auth status`, which starts no session and calls no model, so Claude Code
-    /// can refresh its own token the way it does on launch. Killed after 30 seconds.
+    /// Runs `claude mcp list`, which starts no session and calls no model but makes Claude Code
+    /// refresh its own token (`claude auth status` does not). Killed after 60 seconds.
     private static func askClaudeCodeToRefresh() {
         guard let claude = claudeExecutable() else {
             NSLog("TouchBarCompanion: claude CLI not found; cannot refresh the token")
@@ -114,7 +114,7 @@ final class AccountUsageFetcher {
         }
         let process = Process()
         process.executableURL = claude
-        process.arguments = ["auth", "status"]
+        process.arguments = ["mcp", "list"]
         process.currentDirectoryURL = FileManager.default.homeDirectoryForCurrentUser
         process.standardOutput = FileHandle.nullDevice
         process.standardError = FileHandle.nullDevice
@@ -124,7 +124,7 @@ final class AccountUsageFetcher {
             NSLog("TouchBarCompanion: cannot run \(claude.path): \(error.localizedDescription)")
             return
         }
-        DispatchQueue.global().asyncAfter(deadline: .now() + 30) {
+        DispatchQueue.global().asyncAfter(deadline: .now() + 60) {
             if process.isRunning { process.terminate() }
         }
         process.waitUntilExit()
