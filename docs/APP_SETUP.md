@@ -78,8 +78,8 @@ How it handles your credentials:
 - It reads the Claude Code sign-in token from the login keychain
   (`Claude Code-credentials`) through `/usr/bin/security`, on every fetch, and only keeps it
   in memory for that request. Nothing token-related is written to disk or logs.
-- It never refreshes the token. When it has expired, fetching pauses until Claude Code
-  refreshes it (any Claude Code activity), and the Touch Bar goes gray as data ages.
+- It never refreshes the token itself. When it has expired, it runs `claude mcp list`, which
+  makes Claude Code refresh it; until that works, the Touch Bar goes gray as data ages.
 - The endpoint is undocumented and may change without notice; the status line below keeps
   working as a fallback.
 
