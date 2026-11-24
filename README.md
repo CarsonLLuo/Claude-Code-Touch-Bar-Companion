@@ -90,7 +90,7 @@ Each battery is split into time slices, like F1 minisectors: 10 slices of 30 min
 | Red | Over 1.5× pace |
 | White outline | The current slice |
 | Dark | Not reached yet |
-| Hatched | Not recorded, e.g. before the app started or while the Mac was asleep |
+| Purple | Not recorded, e.g. before the app started or while the Mac was asleep |
 
 The whole battery turns gray when no update has arrived for 30 minutes, and a bolt appears when 5h refills within 15 minutes.
 

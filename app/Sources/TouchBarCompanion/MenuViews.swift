@@ -141,10 +141,11 @@ final class UsageBarView: NSView {
             case .done(let value): ratio = value
             case .live(let value): ratio = value
             }
-            (ratio.map { stale ? .tertiaryLabelColor : UsageRenderer.segmentColor(ratio: $0) } ?? .quaternaryLabelColor)
-                .setFill()
+            let fill = segment == .noData
+                ? UsageRenderer.noData
+                : ratio.map { stale ? .tertiaryLabelColor : UsageRenderer.segmentColor(ratio: $0) } ?? .quaternaryLabelColor
+            fill.setFill()
             path.fill()
-            if segment == .noData { UsageRenderer.drawHatch(in: cell, clip: path) }
             if case .live = segment {
                 NSColor.labelColor.setStroke()
                 let ring = NSBezierPath(roundedRect: cell.insetBy(dx: 0.5, dy: 0.5), xRadius: 2, yRadius: 2)

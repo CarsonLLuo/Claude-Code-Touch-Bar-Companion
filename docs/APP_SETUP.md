@@ -111,7 +111,7 @@ What the Touch Bar shows:
 Each battery segment is a time slice (5h: 30 minutes, 7d: one day), colored by how much
 was used in that slice compared with an even share: green at or under pace, yellow up to
 1.5x, red above. The current slice has a white outline, slices not reached yet are dark,
-and hatched slices had no snapshot. Everything turns gray when no update arrived for 30
+and purple slices had no snapshot. Everything turns gray when no update arrived for 30
 minutes. A bolt means the 5h window refills within 15 minutes.
 
 Limits:
@@ -122,7 +122,7 @@ Limits:
   With only the status line, usage from claude.ai and the desktop app is booked into the next
   slice in which a terminal session records a snapshot.
 - The first snapshot of a window is only a baseline unless it falls in the first slice: earlier
-  slices stay hatched instead of pretending all prior usage happened just now.
+  slices stay purple instead of pretending all prior usage happened just now.
 
 ## Testing With an Isolated State Directory
 

@@ -7,6 +7,8 @@ enum UsageRenderer {
     static let green = NSColor(srgbRed: 0x30 / 255, green: 0xD1 / 255, blue: 0x58 / 255, alpha: 1)
     static let yellow = NSColor(srgbRed: 1, green: 0xD6 / 255, blue: 0x0A / 255, alpha: 1)
     static let red = NSColor(srgbRed: 1, green: 0x45 / 255, blue: 0x3A / 255, alpha: 1)
+    /// Past slices with no snapshot: usage there is unknown, not zero.
+    static let noData = NSColor(srgbRed: 0xBF / 255, green: 0x5A / 255, blue: 0xF2 / 255, alpha: 1)
     private static let empty = NSColor(white: 0.2, alpha: 1)
     private static let staleFill = NSColor(white: 0.45, alpha: 1)
     private static let outline = NSColor(white: 0.78, alpha: 1)
@@ -114,9 +116,8 @@ enum UsageRenderer {
                 empty.setFill()
                 path.fill()
             case .noData:
-                empty.setFill()
+                noData.setFill()
                 path.fill()
-                drawHatch(in: cell, clip: path)
             case .done(let ratio):
                 (stale ? staleFill : segmentColor(ratio: ratio)).setFill()
                 path.fill()
@@ -129,22 +130,6 @@ enum UsageRenderer {
                 ring.stroke()
             }
         }
-    }
-
-    static func drawHatch(in rect: NSRect, clip: NSBezierPath) {
-        NSGraphicsContext.saveGraphicsState()
-        clip.addClip()
-        NSColor(white: 0.42, alpha: 1).setStroke()
-        let stripes = NSBezierPath()
-        stripes.lineWidth = 1
-        var x = rect.minX - rect.height
-        while x < rect.maxX {
-            stripes.move(to: NSPoint(x: x, y: rect.minY))
-            stripes.line(to: NSPoint(x: x + rect.height, y: rect.maxY))
-            x += 3
-        }
-        stripes.stroke()
-        NSGraphicsContext.restoreGraphicsState()
     }
 
     private static func boltImage(pointSize: CGFloat = 12) -> NSImage? {
