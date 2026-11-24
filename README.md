@@ -19,6 +19,10 @@ English | [简体中文](./README.zh-CN.md)
 
 ---
 
+很有幸在2025初在朋友那里拿到了一台全新未拆封的 MacBook Pro M1 2020，也因此有了这个项目的诞生。Touch Bar 是一个被时代淘汰的硬件，但它的设计初衷和交互特性在某些场景下是非常独特和有价值的
+
+In early 2025 I was lucky enough to get a brand-new, still-sealed MacBook Pro M1 (2020) from a friend, and that is how this project started. The Touch Bar is hardware the industry has left behind, but what it was designed for, and the way you interact with it, are still unique and valuable in some situations.
+
 > **Status: the MVP works end to end** with real Claude Code permission requests, and plan usage (5h / 7d) is shown from real account data. The Touch Bar is rendered by a native Swift menu bar app; the original BetterTouchTool setup is kept as a legacy option.
 
 ![Touch Bar screenshot](image/README/1780981115328.png)
