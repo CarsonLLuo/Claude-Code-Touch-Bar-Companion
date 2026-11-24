@@ -25,6 +25,8 @@ Claude Code 想改文件或运行命令时，请求会以一句短摘要加几�
 
 ![Touch Bar 截图](image/README/touchbar-permission.png)
 
+![套餐用量：5 小时和 7 天两条电池，附带剩余电量和重置时间](image/README/usage-on-demand.png)
+
 ## 为什么需要它？
 
 agentic coding 里充满了小决策：

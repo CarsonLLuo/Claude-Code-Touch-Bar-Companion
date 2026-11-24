@@ -27,6 +27,8 @@ In early 2025 I was lucky enough to get a brand-new, still-sealed MacBook Pro M1
 
 ![Touch Bar screenshot](image/README/touchbar-permission.png)
 
+![Plan usage: 5h and 7d batteries with the charge left and when they reset](image/README/usage-on-demand.png)
+
 ## Why?
 
 Agentic coding is full of tiny decisions:
