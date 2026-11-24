@@ -25,7 +25,7 @@ In early 2025 I was lucky enough to get a brand-new, still-sealed MacBook Pro M1
 
 > **Status: the MVP works end to end** with real Claude Code permission requests, and plan usage (5h / 7d) is shown from real account data. The Touch Bar is rendered by a native Swift menu bar app; the original BetterTouchTool setup is kept as a legacy option.
 
-![Touch Bar screenshot](image/README/1780981115328.png)
+![Touch Bar screenshot](image/README/touchbar-permission.png)
 
 ## Why?
 
@@ -71,11 +71,11 @@ The context item is a white, display-only pill, optionally prefixed by an icon f
 
 Your plan's 5-hour and weekly (7-day) limits are shown as batteries: the number is the charge **left**, not what you have used.
 
-![Control Strip: 5h with 47% left over a segmented battery](image/README/usage-control-strip.png)
+![Control Strip: 5h with 51% left over a segmented battery](image/README/usage-control-strip.png)
 
 ![After tapping it: 5h and 7d batteries with the charge left and when they reset](image/README/usage-on-demand.png)
 
-*Top: the Control Strip. Bottom: after tapping it. Captured on a real Touch Bar with example data.*
+*Top: the Control Strip. Bottom: after tapping it. Captured on a real Touch Bar with real usage data.*
 
 | Tier | Where | What you see |
 | --- | --- | --- |

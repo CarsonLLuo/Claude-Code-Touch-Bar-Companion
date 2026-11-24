@@ -23,7 +23,7 @@ Claude Code 想改文件或运行命令时，请求会以一句短摘要加几�
 
 > **当前状态：MVP 已端到端跑通**，可以处理真实的 Claude Code 权限请求，套餐用量（5 小时 / 7 天）也已经用真实账号数据显示出来。Touch Bar 由原生 Swift 菜单栏 app 渲染，原来的 BetterTouchTool 配置保留为旧方案。
 
-![Touch Bar 截图](image/README/1780981115328.png)
+![Touch Bar 截图](image/README/touchbar-permission.png)
 
 ## 为什么需要它？
 
@@ -69,11 +69,11 @@ Context 是白底的只读 item，前面可以显示 `~/.claude-touchbar/icon.pn
 
 套餐的 5 小时额度和每周（7 天）额度以电池的形式显示：数字是**剩余**的电量，不是已经用掉的。
 
-![Control Strip：5 小时剩 47%，下方是分段电池](image/README/usage-control-strip.png)
+![Control Strip：5 小时剩 51%，下方是分段电池](image/README/usage-control-strip.png)
 
 ![点开后：5 小时和 7 天两条电池，附带剩余电量和重置时间](image/README/usage-on-demand.png)
 
-*上：Control Strip。下：点开之后。在真实 Touch Bar 上截取，数据为示例数据。*
+*上：Control Strip。下：点开之后。在真实 Touch Bar 上截取，数据为真实用量。*
 
 | 层级 | 位置 | 显示什么 |
 | --- | --- | --- |
